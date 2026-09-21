@@ -22,8 +22,16 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }
       toastOptions={{
         classNames: {
-          toast: 'group toast group-[.toaster]:rounded-xl group-[.toaster]:font-sans group-[.toaster]:text-body group-[.toaster]:shadow-xl',
-          description: 'group-[.toast]:text-muted',
+          // One compact line: tighter than Sonner's 16px box, a step down the
+          // type scale, and a title that ellipsises rather than wrapping.
+          // Sonner injects its own stylesheet after this app's, and sets
+          // padding/radius/font-size at a specificity these utilities can't
+          // reach, so the ones it also declares are marked important. 12px is
+          // below the app's type scale on purpose — the toast is chrome, and
+          // `label` (13px) is what Sonner was already rendering.
+          toast: 'group toast group-[.toaster]:items-center group-[.toaster]:!gap-2 group-[.toaster]:!rounded-xl group-[.toaster]:!px-3 group-[.toaster]:!py-2 group-[.toaster]:font-sans group-[.toaster]:!text-[12px] group-[.toaster]:!leading-[1.4] group-[.toaster]:shadow-xl',
+          title: 'group-[.toast]:truncate',
+          description: 'group-[.toast]:truncate group-[.toast]:text-muted',
           actionButton: 'group-[.toast]:bg-teal group-[.toast]:text-teal-ink',
           cancelButton: 'group-[.toast]:bg-card group-[.toast]:text-muted',
           icon: 'group-[.toast]:text-teal'

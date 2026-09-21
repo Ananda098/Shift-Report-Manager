@@ -115,6 +115,8 @@ export function AppShell({
   // been opened — swapping the shell's contents never throws input away.
   const [drawer, setDrawer] = useState<Drawer | null>(null);
   const [focusPulse, setFocusPulse] = useState(0);
+  /** Height of the sticky report header, so the margin column can sit under it. */
+  const [headerHeight, setHeaderHeight] = useState(0);
   const [incidentDraft, setIncidentDraft] = useState<IncidentDraft>(EMPTY_INCIDENT_DRAFT);
   const [infoDrafts, setInfoDrafts] = useState<Record<string, InfoDraft>>({});
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
@@ -619,7 +621,11 @@ export function AppShell({
       <main className="scroll-slim flex-1 overflow-y-auto">
         <div className="mx-auto flex w-full max-w-[1100px] flex-col wide:flex-row">
           <div className="w-full px-4 py-6 dt:px-10 dt:py-9 wide:min-w-0 wide:flex-1">
-            <ReportHeader hasUnreviewed={!allReviewed} demoted={demotePagePrimaries} />
+            <ReportHeader
+              hasUnreviewed={!allReviewed}
+              demoted={demotePagePrimaries}
+              onHeightChange={setHeaderHeight} />
+
 
             <div className="mt-6 mb-7">
               <NotesCard
@@ -673,7 +679,8 @@ export function AppShell({
 
             {!allReviewed &&
             <div
-              className="hidden wide:sticky wide:top-0 wide:z-10 wide:-mt-9 wide:block wide:bg-base wide:pt-9 wide:pb-4">
+              style={{ top: headerHeight }}
+              className="hidden wide:sticky wide:z-10 wide:block wide:bg-base wide:pt-6 wide:pb-4">
 
                 <ReviewModule
                 total={incidents.length}

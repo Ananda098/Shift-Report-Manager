@@ -24,7 +24,6 @@ const TRANSCRIPT =
 const PAUSE_MS = 1750;
 const WORDS_PER_TICK = 3;
 const WORD_MS = 45;
-const HIGHLIGHT_MS = 1500;
 const MIN_HEIGHT = 78;
 const MAX_HEIGHT = 210;
 const VISIBLE_NOTES = 3;
@@ -64,8 +63,6 @@ export function NotesCard({
   const [ghost, setGhost] = useState<Ghost | null>(null);
   const [recording, setRecording] = useState(false);
   const [typing, setTyping] = useState(false);
-  const [highlightStart, setHighlightStart] = useState<number | null>(null);
-  const [highlightFading, setHighlightFading] = useState(false);
   const [showAllNotes, setShowAllNotes] = useState(false);
   // The pushed-notes list is hidden behind the footer entry point, and never
   // opens on its own — a push is acknowledged by the toast and the count.
@@ -111,12 +108,12 @@ export function NotesCard({
   // Compact by default (~3 lines), grows with content up to ~8 lines, then
   // scrolls internally instead of pushing the rest of the page down.
   useEffect(() => {
-    const el = typing || highlightStart !== null ? transcriptRef.current : textareaRef.current;
+    const el = typing ? transcriptRef.current : textareaRef.current;
     if (!el) return;
     el.style.height = 'auto';
     const next = Math.min(Math.max(el.scrollHeight, MIN_HEIGHT), MAX_HEIGHT);
     el.style.height = `${next}px`;
-  }, [draft, typing, highlightStart]);
+  }, [draft, typing]);
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     let next = e.target.value;
@@ -166,7 +163,6 @@ export function NotesCard({
     const trimmed = draft.replace(/\s+$/, '');
     const base = trimmed.length ? `${trimmed}\n\n` : '';
     onChangeDraft(base);
-    setHighlightStart(base.length);
     setTyping(true);
 
     const words = TRANSCRIPT.split(' ');
@@ -179,18 +175,10 @@ export function NotesCard({
         return;
       }
       setTyping(false);
-      window.setTimeout(() => {
-        setHighlightFading(true);
-        window.setTimeout(() => {
-          setHighlightStart(null);
-          setHighlightFading(false);
-        }, 320);
-      }, HIGHLIGHT_MS);
     };
     window.setTimeout(tick, WORD_MS);
   };
 
-  const showTranscriptView = typing || highlightStart !== null;
   // Anything in the box — typed or dictated — reveals the push action and
   // demotes Record to a quiet secondary.
   const hasContent = draft.trim().length > 0;
@@ -202,20 +190,12 @@ export function NotesCard({
     // surface, so the sections below read as the document it writes into.
     <div className="rounded-xl border border-line bg-raised transition-colors duration-150 ease-out focus-within:border-teal/60">
       <div className="px-4 py-3.5 dt:px-5 dt:py-4">
-        {showTranscriptView ?
+        {typing ?
         <p
           ref={transcriptRef}
           className="scroll-slim overflow-y-auto whitespace-pre-wrap break-words text-body text-txt">
 
-            {draft.slice(0, highlightStart ?? 0)}
-            <span
-            className={[
-            'transition-colors duration-300 ease-out',
-            highlightFading ? 'text-txt' : 'text-teal'].
-            join(' ')}>
-
-              {draft.slice(highlightStart ?? 0)}
-            </span>
+            {draft}
           </p> :
 
         <div className="relative">
@@ -278,10 +258,9 @@ export function NotesCard({
             disabled={!canPush}
             aria-hidden={!hasContent}
             className={[
-            'inline-flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-4 text-meta font-medium outline-none',
-            'bg-teal text-teal-ink hover:bg-teal-hi',
-            'transition-[opacity,background-color] duration-150 ease-out',
-            'focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-raised',
+            'inline-flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-4 text-meta font-medium text-teal outline-none',
+            'transition-[opacity,background-color] duration-150 ease-out hover:bg-teal-fill',
+            'focus-visible:ring-2 focus-visible:ring-teal',
             hasContent ? canPush ? 'opacity-100' : 'pointer-events-none opacity-40' : 'pointer-events-none opacity-0'].
             join(' ')}>
 

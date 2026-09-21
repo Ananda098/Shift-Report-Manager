@@ -174,7 +174,7 @@ export function ReportSections({
               <span>Tier</span>
               <span>Incident</span>
               <span className="text-right">Time</span>
-              <span>Status</span>
+              <span className="text-right">Status</span>
             </div>
             <ul className="-mx-2 mt-1">
               {reviewed.map((incident) =>

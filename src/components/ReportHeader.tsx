@@ -5,6 +5,8 @@ interface ReportHeaderProps {
   hasUnreviewed: boolean;
   /** Something on top of the page owns the primary action right now. */
   demoted?: boolean;
+  /** Reports the sticky header's height so the margin column can park below it. */
+  onHeightChange?: (height: number) => void;
 }
 
 function findScrollParent(el: HTMLElement | null): HTMLElement | null {
@@ -17,7 +19,7 @@ function findScrollParent(el: HTMLElement | null): HTMLElement | null {
   return null;
 }
 
-export function ReportHeader({ hasUnreviewed, demoted = false }: ReportHeaderProps) {
+export function ReportHeader({ hasUnreviewed, demoted = false, onHeightChange }: ReportHeaderProps) {
   const secondary = hasUnreviewed || demoted;
   const headerRef = useRef<HTMLElement>(null);
   const [scrolled, setScrolled] = useState(false);
@@ -30,6 +32,18 @@ export function ReportHeader({ hasUnreviewed, demoted = false }: ReportHeaderPro
     scroller.addEventListener('scroll', onScroll, { passive: true });
     return () => scroller.removeEventListener('scroll', onScroll);
   }, []);
+
+  // The header covers the top of the scroller, so anything else that sticks up
+  // there needs to know how tall it is.
+  useEffect(() => {
+    const header = headerRef.current;
+    if (!header || !onHeightChange) return;
+    const report = () => onHeightChange(header.offsetHeight);
+    report();
+    const observer = new ResizeObserver(report);
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, [onHeightChange]);
 
   return (
     <header

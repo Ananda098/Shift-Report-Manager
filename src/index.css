@@ -77,3 +77,19 @@ body {
 .scroll-slim::-webkit-scrollbar-track {
   background-color: transparent;
 }
+/* Toasts read as a single compact line. Sonner sizes both the toaster and its
+   toasts from --width (356px), which forces a long "Added 2 to Crowd · …"
+   summary onto two or three lines, so above the mobile breakpoint the toaster
+   collapses to its corner and each toast grows leftward from it instead.
+   Sonner appends its stylesheet to <head> at runtime, after this file, so the
+   widths it declares have to be overridden outright. */
+@media (min-width: 601px) {
+  [data-sonner-toaster] {
+    width: auto !important;
+  }
+  [data-sonner-toaster][data-x-position='right'] [data-sonner-toast] {
+    right: 0;
+    width: max-content !important;
+    max-width: min(560px, calc(100vw - 4rem));
+  }
+}

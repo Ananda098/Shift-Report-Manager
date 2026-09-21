@@ -45,7 +45,7 @@ export function IncidentRow({ incident, highlight = false, onOpen }: IncidentRow
             {incident.time}
           </span>
 
-          <span className="dt:col-start-4 dt:row-start-1">
+          <span className="dt:col-start-4 dt:row-start-1 dt:flex dt:justify-end">
             <StatusChip status={incident.status} />
           </span>
         </span>
