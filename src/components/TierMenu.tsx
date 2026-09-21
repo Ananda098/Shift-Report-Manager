@@ -5,9 +5,9 @@ import { Tier } from '../types/report';
 import { TierBadge } from './TierBadge';
 
 const TIERS: {tier: Tier;description: string;}[] = [
-{ tier: 'T1', description: 'Logged only — refusals and minor notes.' },
-{ tier: 'T2', description: 'Needs follow-up — theft, injury, ejection.' },
-{ tier: 'T3', description: 'Serious — violence, medical, police involved.' }];
+{ tier: 'T1', description: 'Logged only — refusals, minor notes' },
+{ tier: 'T2', description: 'Needs follow-up — theft, injury, ejection' },
+{ tier: 'T3', description: 'Violence, medical, police involved' }];
 
 
 interface TierMenuProps {
@@ -56,8 +56,8 @@ export function TierMenu({ tier, onChange }: TierMenuProps) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -4 }}
           transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
-          className="absolute left-0 top-full z-30 mt-1.5 w-[268px] overflow-hidden rounded-xl border border-line bg-raised p-1 shadow-xl">
-          
+          className="absolute left-0 top-full z-30 mt-1.5 w-[400px] overflow-hidden rounded-xl border border-line bg-raised p-1 shadow-xl">
+
             {TIERS.map((option) =>
           <li key={option.tier} role="none">
                 <button
@@ -67,10 +67,12 @@ export function TierMenu({ tier, onChange }: TierMenuProps) {
                 setOpen(false);
                 if (option.tier !== tier) onChange(option.tier);
               }}
-              className="flex w-full items-start gap-2.5 rounded-lg px-2 py-2 text-left outline-none transition-colors duration-150 ease-out hover:bg-card focus-visible:ring-2 focus-visible:ring-teal">
-              
-                  <TierBadge tier={option.tier} />
-                  <span className="pt-0.5 text-label text-muted">{option.description}</span>
+              className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left outline-none transition-colors duration-150 ease-out hover:bg-card focus-visible:ring-2 focus-visible:ring-teal">
+
+                  <span className="w-24 shrink-0">
+                    <TierBadge tier={option.tier} />
+                  </span>
+                  <span className="whitespace-nowrap text-label text-muted">{option.description}</span>
                 </button>
               </li>
           )}
