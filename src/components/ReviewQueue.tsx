@@ -17,7 +17,7 @@ export function ReviewQueue({ incidents, currentId, onSelect }: ReviewQueueProps
   return (
     <nav
       aria-label="Review queue"
-      className="scroll-slim flex w-[280px] shrink-0 flex-col overflow-y-auto border-r border-line bg-base">
+      className="scroll-slim hidden w-[280px] shrink-0 flex-col overflow-y-auto border-r border-line bg-base lg:flex">
       
       <div className="px-5 pb-4 pt-6">
         <h2 className="text-section font-semibold text-txt">Let’s go through it together</h2>

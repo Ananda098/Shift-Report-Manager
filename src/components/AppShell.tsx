@@ -277,8 +277,8 @@ export function AppShell({
       <NavRail />
 
       <main className="scroll-slim flex-1 overflow-y-auto">
-        <div className="mx-auto flex w-[1100px] max-w-full">
-          <div className="w-[760px] max-w-full shrink-0 px-10 py-9">
+        <div className="mx-auto flex w-full max-w-[1100px] flex-col xl:flex-row">
+          <div className="w-full shrink-0 px-10 py-9 xl:w-[760px]">
             <ReportHeader hasUnreviewed={!allReviewed} demoted={demotePagePrimaries} />
 
             {!allReviewed &&
@@ -343,7 +343,10 @@ export function AppShell({
             </div>
           </div>
 
-          <div className="w-[340px] shrink-0 py-9" aria-label="Margin notes">
+          <div
+            className="w-full shrink-0 px-10 pb-9 xl:w-[340px] xl:px-0 xl:py-9"
+            aria-label="Margin notes">
+
             <MarginRail items={marginItems} />
           </div>
         </div>

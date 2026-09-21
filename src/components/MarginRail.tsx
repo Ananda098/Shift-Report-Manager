@@ -12,13 +12,33 @@ interface MarginRailProps {
   items: MarginRailItem[];
   /** Vertical gap kept between stacked cards, in px. */
   gap?: number;
+  /** Below this viewport width, cards render as a plain stacked list instead of docs-style anchored positions. */
+  breakpoint?: number;
+}
+
+/** Tracks whether the viewport is at least `breakpointPx` wide. */
+function useIsWide(breakpointPx: number): boolean {
+  const [wide, setWide] = useState(() => window.innerWidth >= breakpointPx);
+
+  useEffect(() => {
+    const mql = window.matchMedia(`(min-width: ${breakpointPx}px)`);
+    const handler = () => setWide(mql.matches);
+    handler();
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, [breakpointPx]);
+
+  return wide;
 }
 
 /**
  * A Google Docs style comment margin: every card lines up with the top of the
  * element it is anchored to, and cards that would overlap are pushed down.
+ * Below `breakpoint`, there's no room beside the content for this, so cards
+ * fall back to a plain stacked list.
  */
-export function MarginRail({ items, gap = 8 }: MarginRailProps) {
+export function MarginRail({ items, gap = 8, breakpoint = 1280 }: MarginRailProps) {
+  const wide = useIsWide(breakpoint);
   const railRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [tops, setTops] = useState<Record<string, number>>({});
@@ -81,6 +101,14 @@ export function MarginRail({ items, gap = 8 }: MarginRailProps) {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  if (!wide) {
+    return (
+      <div className="space-y-3">
+        {keyed.map((item) => <div key={item.key}>{item.element}</div>)}
+      </div>);
+
+  }
 
   return (
     <div ref={railRef} className="relative h-full w-full">
