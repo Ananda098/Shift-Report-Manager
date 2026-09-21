@@ -99,6 +99,7 @@ export function AppShell({
       id,
       tier: draft.tier,
       type: draft.type,
+      date: 'Sun 21',
       time: draft.time,
       location: draft.location,
       status: 'confirmed',

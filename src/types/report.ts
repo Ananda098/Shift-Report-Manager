@@ -9,6 +9,8 @@ export interface Person {
   name: string;
   role: string;
   initials: string;
+  /** Profile photo, when the person has set one. Falls back to initials otherwise. */
+  avatarUrl?: string;
 }
 
 export type EvidenceKind = 'video' | 'photo' | 'document' | 'request';
@@ -34,6 +36,8 @@ export interface Incident {
   id: string;
   tier: Tier;
   type: string;
+  /** Short calendar-day label, e.g. "Sat 20" — the shift runs past midnight, so this disambiguates which night an incident falls on. */
+  date: string;
   time: string;
   location: string;
   reportedBy: Person[];
