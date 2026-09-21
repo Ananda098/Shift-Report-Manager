@@ -101,9 +101,14 @@ alreadyUsed: ReadonlySet<string>)
   return { statements, incidents };
 }
 
-/** One supporting question the "+ Add information" drawer asks for a section. */
+/** One row the "+ Add information" drawer asks for a section — styled like a
+    New-incident field: short label on the left, the question as the input's
+    placeholder on the right. */
 export interface SectionQuestion {
-  question: string;
+  /** Short field label, e.g. "Staffing" — rendered uppercase, matching New incident's Field. */
+  label: string;
+  /** The supporting question, shown as the input placeholder. */
+  placeholder: string;
   chip: string;
   /** Filled in when the manager taps Record instead of typing. */
   sampleAnswer: string;
@@ -116,103 +121,106 @@ export interface SectionQuestion {
 export const SECTION_QUESTIONS: Record<string, SectionQuestion[]> = {
   crowd: [
   {
-    question: 'How busy did it get, and when?',
+    label: 'Busy',
+    placeholder: 'How busy, and when?',
     chip: 'audience',
     sampleAnswer: 'Packed by midnight, steady until close.'
   },
   {
-    question: 'Any private bookings or groups tonight?',
+    label: 'Groups',
+    placeholder: 'Any private bookings tonight?',
     chip: 'private events',
     sampleAnswer: 'A hen party of about fifteen in the mezzanine from ten.'
   },
   {
-    question: 'Did the crowd energy or age mix stand out?',
+    label: 'Vibe',
+    placeholder: 'Crowd energy or age mix stand out?',
     chip: 'experience',
     sampleAnswer: 'Younger crowd than usual, mostly student-age.'
   },
   {
-    question: 'Were we ever near capacity?',
+    label: 'Capacity',
+    placeholder: 'Near capacity at any point?',
     chip: 'capacity',
     sampleAnswer: 'Hit capacity briefly around one, held the door for ten minutes.'
   }],
 
   concerning: [
   {
-    question: 'Any safety or security issue, even a minor one?',
+    label: 'Security',
+    placeholder: 'Any safety or security issue?',
     chip: 'security',
     sampleAnswer: 'One guest got argumentative at the cloakroom, settled quickly.'
   },
   {
-    question: 'Anything broken, unsafe, or in need of repair?',
+    label: 'Maintenance',
+    placeholder: 'Anything broken or unsafe?',
     chip: 'maintenance',
     sampleAnswer: 'Handrail on the back stairs is loose.'
   },
   {
-    question: 'Any guest complaints worth flagging?',
+    label: 'Complaints',
+    placeholder: 'Any guest complaints?',
     chip: 'complaint',
     sampleAnswer: 'Complaint about the smoking area queue moving too slowly.'
   },
   {
-    question: 'Anything a future shift should be warned about?',
+    label: 'Handover',
+    placeholder: 'Anything the next shift should know?',
     chip: 'handover',
     sampleAnswer: 'Regular in the grey jacket was asked to slow down on drinks twice.'
   }],
 
   crew: [
   {
-    question: 'Was the team fully staffed and on time?',
+    label: 'Staffing',
+    placeholder: 'Fully staffed and on time?',
     chip: 'staffing',
     sampleAnswer: 'Fully staffed, everyone on time.'
   },
   {
-    question: 'Anyone who handled something particularly well?',
+    label: 'Standouts',
+    placeholder: 'Anyone who handled something well?',
     chip: 'recognition',
     sampleAnswer: 'Ola handled the medical call calmly and kept the floor informed.'
   },
   {
-    question: 'Any conduct or performance issue to note?',
+    label: 'Issues',
+    placeholder: 'Any conduct or performance issue?',
     chip: 'conduct',
     sampleAnswer: 'None tonight.'
   },
   {
-    question: 'Any training gap you noticed?',
+    label: 'Training',
+    placeholder: 'Any training gap you noticed?',
     chip: 'training',
     sampleAnswer: 'New door staff still unsure on the ID-check process.'
   }],
 
   needs: [
   {
-    question: 'What ran low or ran out tonight?',
+    label: 'Inventory',
+    placeholder: 'What ran low or out?',
     chip: 'inventory',
     sampleAnswer: 'Running low on cups and ice by close.'
   },
   {
-    question: 'Any equipment that needs fixing or replacing?',
+    label: 'Equipment',
+    placeholder: 'Anything need fixing?',
     chip: 'equipment',
     sampleAnswer: 'One of the till card readers is intermittent.'
   },
   {
-    question: 'Anything to reorder before next weekend?',
+    label: 'Supplies',
+    placeholder: 'Anything to reorder?',
     chip: 'supplies',
     sampleAnswer: 'Reorder tonic and lime before Friday.'
   },
   {
-    question: 'Any facilities issue for the day team?',
+    label: 'Facilities',
+    placeholder: 'Facilities issue for day team?',
     chip: 'facilities',
     sampleAnswer: 'Back door lock is sticking, needs a look.'
   }]
 
 };
-
-export interface DrawerAnswer {
-  question: string;
-  chip: string;
-  text: string;
-}
-
-/** Turns answered drawer questions into tagged statements — the answer text stands as-is. */
-export function answersToStatements(answers: DrawerAnswer[]): {chips: string[];text: string;}[] {
-  return answers.
-  filter((a) => a.text.trim().length > 0).
-  map((a) => ({ chips: [a.chip], text: a.text.trim() }));
-}

@@ -109,7 +109,7 @@ export const statementSections: StatementSection[] = [
   },
   {
     id: 's-needs-2',
-    chips: ['kitchen'],
+    chips: ['kitchen', 'equipment'],
     text: 'Kitchen needs another set of tongs and a replacement basket for the small fryer.',
     source: {
       quote: 'Order tongs and a new small fryer basket, the old one is bent.',

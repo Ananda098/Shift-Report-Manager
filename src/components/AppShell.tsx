@@ -5,8 +5,6 @@ import { statementSections } from '../data/statements';
 import { people } from '../data/people';
 import { sortForQueue, systemEntry } from '../utils/reviewActions';
 import {
-  answersToStatements,
-  DrawerAnswer,
   ParsedIncident,
   ParsedStatement,
   parseNotes,
@@ -83,6 +81,10 @@ export function AppShell({
   const openStatement = allStatements.find((s) => s.id === openStatementId) ?? null;
   const openIncident = incidents.find((i) => i.id === openIncidentId) ?? null;
   const addInfoSection = sections.find((s) => s.id === addInfoSectionId) ?? null;
+  const addInfoQuestions = addInfoSection ? SECTION_QUESTIONS[addInfoSection.id] ?? [] : [];
+  const addInfoInitialAnswers = addInfoQuestions.map(
+    (q) => addInfoSection?.statements.find((s) => s.chips.includes(q.chip))?.text ?? ''
+  );
   const reviewedCount = incidents.filter((incident) => incident.status !== 'pending').length;
   const allReviewed = reviewedCount === incidents.length;
   const notesStatementCount = allStatements.filter((s) => s.source.input === 'Note').length;
@@ -192,31 +194,52 @@ export function AppShell({
     setToast(summarisePush(parsed, parsedIncidents, titleById));
   };
 
-  /** "+ Add information" drawer: each answered question becomes its own
-      tagged statement (mocked AI — the answer text stands as written). */
-  const handleAddInfo = (sectionId: string, answers: DrawerAnswer[]) => {
-    const created = answersToStatements(answers);
+  /** "+ Add information" drawer: syncs the drawer's rows onto the section —
+      a row with new text becomes a new tagged statement (mocked AI — the
+      answer stands as written), a row matching an existing statement (by
+      chip) updates it in place instead of duplicating it, and a row the
+      manager cleared removes its statement. */
+  const handleAddInfo = (sectionId: string, rows: {chip: string;text: string;}[]) => {
     setAddInfoSectionId(null);
-    if (created.length === 0) return;
-
     const newIds: string[] = [];
+
     setSections((prev) =>
     prev.map((section) => {
       if (section.id !== sectionId) return section;
-      const added: Statement[] = created.map((c, index) => {
-        const id = `s-add-${sectionId}-${Date.now()}-${index}`;
+      let statements = section.statements;
+
+      rows.forEach((row) => {
+        const text = row.text.trim();
+        const existingIndex = statements.findIndex((s) => s.chips.includes(row.chip));
+
+        if (!text) {
+          if (existingIndex !== -1) statements = statements.filter((_, i) => i !== existingIndex);
+          return;
+        }
+        if (existingIndex !== -1) {
+          if (statements[existingIndex].text !== text) {
+            statements = statements.map((s, i) => i === existingIndex ? { ...s, text } : s);
+          }
+          return;
+        }
+        const id = `s-add-${sectionId}-${row.chip}-${Date.now()}`;
         newIds.push(id);
-        return {
+        statements = [
+        ...statements,
+        {
           id,
-          chips: c.chips,
-          text: c.text,
-          source: { quote: c.text, person: people.you, time: NOW, input: 'Typed' }
-        };
+          chips: [row.chip],
+          text,
+          source: { quote: text, person: people.you, time: NOW, input: 'Typed' }
+        }];
+
       });
-      return { ...section, statements: [...section.statements, ...added] };
+
+      return { ...section, statements };
     })
     );
-    flashNew(newIds);
+
+    if (newIds.length > 0) flashNew(newIds);
   };
 
   const updateStatement = (id: string, text: string) => {
@@ -354,9 +377,11 @@ export function AppShell({
         <AddInfoPanel
           key={`add-info-${addInfoSection.id}`}
           sectionTitle={addInfoSection.title}
-          questions={SECTION_QUESTIONS[addInfoSection.id] ?? []}
+          questions={addInfoQuestions}
+          initialAnswers={addInfoInitialAnswers}
+          hasExistingContent={addInfoSection.statements.length > 0}
           onClose={() => setAddInfoSectionId(null)}
-          onAdd={(answers) => handleAddInfo(addInfoSection.id, answers)} />
+          onAdd={(rows) => handleAddInfo(addInfoSection.id, rows)} />
 
         }
       </AnimatePresence>

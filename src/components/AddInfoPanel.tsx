@@ -1,97 +1,93 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { XIcon, MicIcon } from 'lucide-react';
-import { DrawerAnswer, SectionQuestion } from '../utils/mockAi';
+import { Evidence } from '../types/report';
+import { SectionQuestion } from '../utils/mockAi';
+import { RecordButton } from './RecordButton';
+import { InlineEditable } from './InlineEditable';
+import { HighlightText } from './HighlightText';
+import { EvidenceSection } from './EvidenceSection';
 import { DismissDialog } from './DismissDialog';
 
 interface AddInfoPanelProps {
   sectionTitle: string;
   questions: SectionQuestion[];
+  /** Existing answers, one per question, prefilled from the section's current statements. */
+  initialAnswers: string[];
+  /** The section already has statements — swaps the primary label to "Update". */
+  hasExistingContent: boolean;
   onClose: () => void;
-  onAdd: (answers: DrawerAnswer[]) => void;
+  onAdd: (rows: {chip: string;text: string;}[]) => void;
 }
 
-const RECORD_MS = 600;
+const FILL_STEP_MS = 250;
 
-function QuestionField({
-  question,
-  value,
-  recording,
-  onChange,
-  onRecord
+function Row({
+  label,
+  tag,
+  children
 
 
 
-
-}: {question: SectionQuestion;value: string;recording: boolean;onChange: (v: string) => void;onRecord: () => void;}) {
-  const ref = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.style.height = 'auto';
-    el.style.height = `${el.scrollHeight}px`;
-  }, [value]);
-
+}: {label: string;tag?: string;children: React.ReactNode;}) {
   return (
-    <div className="border-t border-line py-3 first:border-t-0 first:pt-0">
-      <p className="text-label text-faint">{question.question}</p>
-      <textarea
-        ref={ref}
-        rows={1}
-        value={value}
-        disabled={recording}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="Type an answer…"
-        className="mt-1.5 block w-full resize-none overflow-hidden rounded-md bg-transparent text-body text-txt outline-none placeholder:text-faint disabled:text-faint" />
-
-      <button
-        type="button"
-        onClick={onRecord}
-        disabled={recording}
-        className="mt-1 inline-flex items-center gap-1.5 rounded-md text-label text-muted outline-none transition-colors duration-150 ease-out hover:text-txt focus-visible:ring-2 focus-visible:ring-teal disabled:text-teal">
-
-        <MicIcon size={12} strokeWidth={2} />
-        {recording ? 'Listening…' : 'Record'}
-      </button>
+    <div className="flex gap-3 border-t border-line py-2.5">
+      <span className="w-[76px] shrink-0 pt-1 text-label uppercase tracking-wide text-faint">
+        {label}
+      </span>
+      <div className="min-w-0 flex-1">
+        {children}
+        {tag && <p className="mt-0.5 px-1 text-label text-faint">{tag}</p>}
+      </div>
     </div>);
 
 }
 
-/** Same drawer pattern as "New incident", but built from a section's supporting questions. */
-export function AddInfoPanel({ sectionTitle, questions, onClose, onAdd }: AddInfoPanelProps) {
-  const [answers, setAnswers] = useState<string[]>(() => questions.map(() => ''));
-  const [recordingIndex, setRecordingIndex] = useState<number | null>(null);
+/** Same drawer pattern as "New incident" — label-left/value-right rows, one
+    per section question, filled by typing or by a mocked Record pass. */
+export function AddInfoPanel({
+  sectionTitle,
+  questions,
+  initialAnswers,
+  hasExistingContent,
+  onClose,
+  onAdd
+}: AddInfoPanelProps) {
+  const [answers, setAnswers] = useState<string[]>(initialAnswers);
+  const [recording, setRecording] = useState(false);
+  const [recordedChips, setRecordedChips] = useState<string[]>([]);
+  const [evidence, setEvidence] = useState<Evidence[]>([]);
   const [discardOpen, setDiscardOpen] = useState(false);
 
   const hasData = answers.some((a) => a.trim().length > 0);
+  const isDirty = evidence.length > 0 || answers.some((a, i) => a !== initialAnswers[i]);
 
   const setAnswer = (index: number, value: string) => {
     setAnswers((prev) => prev.map((a, i) => i === index ? value : a));
   };
 
-  const record = (index: number) => {
-    if (recordingIndex !== null) return;
-    setRecordingIndex(index);
-    window.setTimeout(() => {
-      setAnswer(index, questions[index].sampleAnswer);
-      setRecordingIndex(null);
-    }, RECORD_MS);
+  // Fills whichever rows are still empty — content the manager already typed
+  // or that came prefilled from an earlier answer is left alone.
+  const handleStop = () => {
+    setRecording(false);
+    const emptyIndexes = questions.map((_, i) => i).filter((i) => !answers[i].trim());
+    emptyIndexes.forEach((qIndex, step) => {
+      window.setTimeout(() => {
+        setAnswer(qIndex, questions[qIndex].sampleAnswer);
+        setRecordedChips((prev) => [...prev, questions[qIndex].chip]);
+      }, FILL_STEP_MS * (step + 1));
+    });
   };
 
-  const requestClose = () => hasData ? setDiscardOpen(true) : onClose();
+  const requestClose = () => isDirty ? setDiscardOpen(true) : onClose();
 
   const handleAdd = () => {
-    const filled: DrawerAnswer[] = questions.
-    map((q, i) => ({ question: q.question, chip: q.chip, text: answers[i].trim() })).
-    filter((a) => a.text.length > 0);
-    if (filled.length === 0) return;
-    onAdd(filled);
+    onAdd(questions.map((q, i) => ({ chip: q.chip, text: answers[i] })));
   };
 
   return (
     <motion.aside
-      aria-label={`Add information to ${sectionTitle}`}
+      aria-label={sectionTitle}
       initial={{ x: 24, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: 24, opacity: 0 }}
@@ -100,7 +96,7 @@ export function AddInfoPanel({ sectionTitle, questions, onClose, onAdd }: AddInf
 
       <div className="scroll-slim flex-1 overflow-y-auto px-5 py-5">
         <div className="mb-3 flex items-start justify-between gap-3">
-          <h2 className="text-section font-semibold text-txt">Add to {sectionTitle.toLowerCase()}</h2>
+          <h2 className="text-section font-semibold text-txt">{sectionTitle}</h2>
           <button
             type="button"
             onClick={requestClose}
@@ -110,21 +106,38 @@ export function AddInfoPanel({ sectionTitle, questions, onClose, onAdd }: AddInf
             <XIcon size={17} strokeWidth={2} />
           </button>
         </div>
-        <p className="text-meta text-muted">
-          Answer whatever's relevant — type, or tap Record for each one. Nothing here is required.
-        </p>
 
-        <div className="mt-4">
+        <div>
           {questions.map((question, index) =>
-          <QuestionField
-            key={question.question}
-            question={question}
-            value={answers[index]}
-            recording={recordingIndex === index}
-            onChange={(v) => setAnswer(index, v)}
-            onRecord={() => record(index)} />
+          <Row
+            key={question.chip}
+            label={question.label}
+            tag={recordedChips.includes(question.chip) ? 'from recording' : undefined}>
 
+              <InlineEditable
+              value={answers[index]}
+              onChange={(value) => setAnswer(index, value)}
+              onDelete={() => setAnswer(index, '')}
+              ariaLabel={question.label}
+              elementId={`input-${question.chip}`}
+              placeholder={question.placeholder}>
+
+                <HighlightText active={recordedChips.includes(question.chip)}>
+                  {answers[index]}
+                </HighlightText>
+              </InlineEditable>
+            </Row>
           )}
+        </div>
+
+        <div className="border-t border-line pt-1">
+          <EvidenceSection
+            evidence={evidence}
+            highlightId={null}
+            onAdd={(name) =>
+            setEvidence((prev) => [...prev, { id: `e-new-${Date.now()}`, kind: 'photo', name }])
+            } />
+
         </div>
       </div>
 
@@ -136,14 +149,32 @@ export function AddInfoPanel({ sectionTitle, questions, onClose, onAdd }: AddInf
 
           Cancel
         </button>
-        <button
-          type="button"
-          onClick={handleAdd}
-          disabled={!hasData}
-          className="h-10 rounded-lg bg-teal px-4 text-meta font-medium text-teal-ink outline-none transition-colors duration-150 ease-out hover:bg-teal-hi focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:opacity-40">
 
-          Add to {sectionTitle.toLowerCase()}
-        </button>
+        {!hasData || recording ?
+        <RecordButton
+          recording={recording}
+          onStart={() => setRecording(true)}
+          onStop={handleStop} /> :
+
+
+        <div className="flex items-center gap-2">
+            <button
+            type="button"
+            onClick={() => setRecording(true)}
+            aria-label="Record more"
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-teal outline-none transition-colors duration-150 ease-out hover:bg-teal-fill focus-visible:ring-2 focus-visible:ring-teal">
+
+              <MicIcon size={16} strokeWidth={2} />
+            </button>
+            <button
+            type="button"
+            onClick={handleAdd}
+            className="h-10 rounded-lg bg-teal px-4 text-meta font-medium text-teal-ink outline-none transition-colors duration-150 ease-out hover:bg-teal-hi focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-card">
+
+              {hasExistingContent ? 'Update information' : 'Add information'}
+            </button>
+          </div>
+        }
       </div>
 
       <AnimatePresence>
