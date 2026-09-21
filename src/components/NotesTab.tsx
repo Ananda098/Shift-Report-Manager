@@ -77,7 +77,7 @@ export function NotesTab({ value, onChange }: NotesTabProps) {
     if (!el) return;
     el.style.height = 'auto';
     el.style.height = `${el.scrollHeight}px`;
-  }, [value, typing]);
+  }, [value, typing, highlightStart]);
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     let next = e.target.value;
@@ -125,6 +125,7 @@ export function NotesTab({ value, onChange }: NotesTabProps) {
 
     const trimmed = value.replace(/\s+$/, '');
     const base = trimmed.length ? `${trimmed}\n\n` : '';
+    onChange(base);
     setHighlightStart(base.length);
     setTyping(true);
 
