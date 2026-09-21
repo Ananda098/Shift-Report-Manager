@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Incidents Table Proposals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+
+  /* ============================================================
+     TOKENS — exact app values. Nothing new added.
+     ============================================================ */
+  :root{
+    --base:#131216;
+    --card:#1B1A20;
+    --raised:#23212A;
+    --line:#302E38;
+    --txt:#E9E6EC;
+    --muted:#A5A1AE;
+    --faint:#6E6A78;
+    --tier-t1:#6E6A78;
+    --tier-blue:#5B8DEF;
+    --tier-t2:#E0A33E;
+    --ok:#5FC08D;
+  }
+
+  *{ box-sizing:border-box; }
+
+  html,body{
+    margin:0;
+    background:var(--base);
+    color:var(--txt);
+    font-family:'Inter',ui-sans-serif,system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  body{ padding:56px 24px 120px; }
+  .page{ max-width:1900px; margin:0 auto; }
+
+  /* ---------- intro ---------- */
+  .intro{ max-width:70ch; margin-bottom:52px; }
+  .intro .eyebrow{
+    font-size:12px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--faint); font-weight:600; margin-bottom:10px;
+  }
+  .intro h1{ font-size:30px; font-weight:600; letter-spacing:-0.01em; margin:0 0 12px; }
+  .intro p{ font-size:15px; line-height:1.65; color:var(--muted); margin:0 0 8px; }
+  .legend{ display:flex; gap:18px; margin-top:18px; flex-wrap:wrap; font-size:13px; color:var(--faint); }
+  .legend b{ color:var(--txt); font-weight:600; }
+
+  /* ---------- variant scaffold ---------- */
+  .variant-row{
+    display:flex; gap:26px; align-items:flex-start;
+    overflow-x:auto; padding-bottom:16px; margin-bottom:60px;
+    scroll-snap-type:x proximity;
+  }
+  .variant{ width:640px; max-width:calc(100vw - 48px); flex:0 0 auto; scroll-snap-align:start; }
+  .variant-tag{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size:12px; font-weight:600; letter-spacing:.03em;
+    color:var(--faint); text-transform:uppercase; margin-bottom:10px;
+  }
+  .variant-tag .letter{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:20px; height:20px; border-radius:5px; background:var(--raised);
+    color:var(--txt); font-size:11px; font-weight:700; text-transform:none;
+  }
+  .rationale{ margin:12px 2px 0; font-size:13px; line-height:1.6; color:var(--muted); }
+  .rationale b{ color:var(--txt); font-weight:600; }
+  .rationale .glance{ display:block; margin-top:6px; font-size:12px; color:var(--faint); }
+
+  /* ---------- section card — unchanged shell, per constraint ---------- */
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px; }
+  .card-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .card-head-left{ display:flex; align-items:center; gap:10px; }
+  .card-icon{
+    display:flex; align-items:center; justify-content:center;
+    width:28px; height:28px; border-radius:8px; background:var(--raised); color:var(--muted); flex-shrink:0;
+  }
+  .card-title{ font-size:18px; font-weight:600; color:var(--txt); }
+  .card-meta{ font-size:13px; color:var(--faint); margin-left:8px; font-weight:400; }
+  .add-action{
+    display:inline-flex; align-items:center; gap:5px; font-size:14px; color:var(--muted);
+  }
+
+  /* ---------- shared row primitives ---------- */
+  .chip{
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--raised); border-radius:6px; padding:4px 8px;
+    font-size:13px; font-weight:500; white-space:nowrap;
+  }
+  .chip .dot{ width:7px; height:7px; border-radius:999px; flex-shrink:0; }
+  .chip.t1{ color:var(--muted); } .chip.t1 .dot{ background:var(--tier-t1); }
+  .chip.t2{ color:var(--tier-blue); } .chip.t2 .dot{ background:var(--tier-blue); }
+  .chip.t3{ color:var(--tier-t2); } .chip.t3 .dot{ background:var(--tier-t2); }
+
+  .status-confirmed{
+    display:inline-flex; align-items:center; gap:5px; white-space:nowrap;
+    background:rgba(95,192,141,.15); color:var(--ok); border-radius:6px;
+    padding:4px 8px; font-size:13px; font-weight:500;
+  }
+
+  .avatar-row{ display:flex; align-items:center; -space-x:6px; }
+  .avatar{
+    width:22px; height:22px; border-radius:999px; background:var(--raised);
+    display:inline-flex; align-items:center; justify-content:center;
+    font-size:10px; font-weight:500; color:var(--muted);
+    box-shadow:0 0 0 2px var(--card); margin-left:-6px;
+  }
+  .avatar:first-child{ margin-left:0; }
+
+  .title-text{ font-size:15px; color:var(--txt); line-height:1.4; }
+
+  /* ============================================================
+     VARIANT A — current layout, recreated faithfully (unmodified)
+     ============================================================ */
+  .a-row{
+    display:flex; align-items:center; gap:14px;
+    padding:9px 10px; border-radius:8px;
+  }
+  .a-row:hover{ background:var(--raised); }
+  .a-left{ display:flex; align-items:center; gap:10px; width:230px; flex-shrink:0; min-width:0; }
+  .a-left .title-text{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .a-mid{ display:flex; align-items:center; gap:10px; flex:1; min-width:0; color:var(--muted); font-size:13px; }
+  .a-right{ flex-shrink:0; }
+
+  /* ============================================================
+     VARIANTS B / C / D / E — shared grid rules
+     ============================================================ */
+  .col-headers{
+    display:grid; gap:14px; padding:0 10px 8px; margin-top:4px; border-bottom:1px solid var(--line);
+  }
+  .col-headers span{
+    font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--faint);
+  }
+  .grid-row{
+    display:grid; align-items:start; gap:14px; padding:11px 10px; border-radius:8px;
+  }
+  .grid-row:hover{ background:var(--raised); }
+  .col-time{ text-align:right; font-variant-numeric:tabular-nums; font-size:13px; color:var(--muted); padding-top:2px; }
+  .col-title{ min-width:0; }
+  .col-title .title-text{ overflow-wrap:break-word; }
+
+  .b-grid{ grid-template-columns:100px 1fr 56px 130px; }
+  .c-grid{ grid-template-columns:56px 100px 1fr 130px; }
+  .d-grid{ grid-template-columns:100px 1fr 56px; }
+  .e-grid{ grid-template-columns:1fr 56px 130px; }
+
+  .e-group-head{
+    display:flex; align-items:center; gap:7px; margin:18px 10px 6px;
+    font-size:12px; font-weight:600; color:var(--muted);
+  }
+  .e-group-head:first-of-type{ margin-top:14px; }
+  .e-group-head .dot{ width:7px; height:7px; border-radius:999px; }
+  .e-group-head.t3{ color:var(--tier-t2); } .e-group-head.t3 .dot{ background:var(--tier-t2); }
+  .e-group-head.t2{ color:var(--tier-blue); } .e-group-head.t2 .dot{ background:var(--tier-blue); }
+  .e-group-head.t1{ color:var(--muted); } .e-group-head.t1 .dot{ background:var(--tier-t1); }
+  .e-group-head .count{ color:var(--faint); font-weight:400; }
+
+  /* ---------- recommended ---------- */
+  .recommended{ padding-top:44px; border-top:1px solid var(--line); }
+  .recommended h2{ font-size:20px; font-weight:600; margin:0 0 6px; }
+  .recommended p{ font-size:14px; color:var(--muted); max-width:70ch; line-height:1.6; }
+  .recommended b{ color:var(--txt); }
+
+  h2.block-h{ font-size:20px; font-weight:600; margin:0 0 6px; }
+  p.block-goal{ font-size:13.5px; color:var(--muted); margin:0 0 20px; max-width:70ch; line-height:1.55; }
+
+  @media (max-width:640px){ body{ padding:40px 16px 100px; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="intro">
+    <div class="eyebrow">Design exploration — not production code</div>
+    <h1>Incidents table hierarchy</h1>
+    <p>Same colours, tier chip styling, dark theme, font, section card and "+ Add incident" action as today. Same 10 incidents, unchanged. Only column structure, alignment, headers and grouping are being explored — this list has to scan in seconds at 3am and hold up whether it's 1 row or 20+.</p>
+    <div class="legend">
+      <span><b>A</b> — current layout, recreated faithfully</span>
+      <span><b>B–E</b> — proposals: aligned grid columns, no avatars, header row, wrap-friendly titles</span>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       VARIANT A — current layout, recreated faithfully (baseline)
+       ============================================================ -->
+  <section>
+    <h2 class="block-h">A — Current (baseline)</h2>
+    <p class="block-goal">Today's actual layout: a 3-part flex row (tier+title, then time+avatars huddled together, then status pinned right). No column headers.</p>
+    <div class="variant">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-head-left">
+            <span class="card-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2 3 6v6c0 5 4 9 9 10 5-1 9-5 9-10V6l-9-4Z"></path></svg>
+            </span>
+            <span class="card-title">Incidents</span>
+          </div>
+          <span class="add-action">+ Add incident</span>
+        </div>
+
+        <div style="margin-top:16px;">
+          <div class="a-row"><div class="a-left"><span class="chip t1"><span class="dot"></span>Minor</span><span class="title-text">Entry refusal</span></div><div class="a-mid"><span class="tabular-nums">22:10</span><span class="avatar-row"><span class="avatar">KW</span><span class="avatar">TR</span></span></div><div class="a-right"><span class="status-confirmed">✓ Confirmed</span></div></div>
+          <div class="a-row"><div class="a-left"><span class="chip t1"><span class="dot"></span>Minor</span><span class="title-text">Entry refusal</span></div><div class="a-mid"><span class="tabular-nums">22:45</span><span class="avatar-row"><span class="avatar">KW</span></span></div><div class="a-right"><span class="status-confirmed">✓ Confirmed</span></div></div>
+          <div class="a-row"><div class="a-left"><span class="chip t1"><span class="dot"></span>Minor</span><span class="title-text">Entry refusal</span></div><div class="a-mid"><span class="tabular-nums">23:20</span><span class="avatar-row"><span class="avatar">KW</span></span></div><div class="a-right"><span class="status-confirmed">✓ Confirmed</span></div></div>
+          <div class="a-row"><div class="a-left"><span class="chip t2"><span class="dot"></span>Moderate</span><span class="title-text">Theft / property</span></div><div class="a-mid"><span class="tabular-nums">23:40</span><span class="avatar-row"><span class="avatar">ZN</span><span class="avatar">OK</span></span></div><div class="a-right"><span class="status-confirmed">✓ Confirmed</span></div></div>
+          <div class="a-row"><div class="a-left"><span class="chip t2"><span class="dot"></span>Moderate</span><span class="title-text">Slip / fall</span></div><div class="a-mid"><span class="tabular-nums">00:50</span><span class="avatar-row"><span class="avatar">OK</span><span class="avatar">ZN</span></span></div><div class="a-right"><span class="status-confirmed">✓ Confirmed</span></div></div>
+          <div class="a-row"><div class="a-left"><span class="chip t3"><span class="dot"></span>Serious</span><span class="title-text">Violence / altercation</span></div><div class="a-mid"><span class="tabular-nums">01:30</span><span class="avatar-row"><span class="avatar">TR</span><span class="avatar">ZN</span></span></div><div class="a-right"><span class="status-confirmed">✓ Confirmed</span></div></div>
+          <div class="a-row"><div class="a-left"><span class="chip t1"><span class="dot"></span>Minor</span><span class="title-text">Entry refusal</span></div><div class="a-mid"><span class="tabular-nums">01:55</span><span class="avatar-row"><span class="avatar">KW</span><span class="avatar">TR</span></span></div><div class="a-right"><span class="status-confirmed">✓ Confirmed</span></div></div>
+          <div class="a-row"><div class="a-left"><span class="chip t3"><span class="dot"></span>Serious</span><span class="title-text">Medical</span></div><div class="a-mid"><span class="tabular-nums">02:10</span><span class="avatar-row"><span class="avatar">OK</span><span class="avatar">ZN</span></span></div><div class="a-right"><span class="status-confirmed">✓ Confirmed</span></div></div>
+          <div class="a-row"><div class="a-left"><span class="chip t2"><span class="dot"></span>Moderate</span><span class="title-text">Repeated harassment complaint, ejected after two warnings</span></div><div class="a-mid"><span class="tabular-nums">02:40</span><span class="avatar-row"><span class="avatar">TR</span><span class="avatar">KW</span></span></div><div class="a-right"><span class="status-confirmed">✓ Confirmed</span></div></div>
+          <div class="a-row"><div class="a-left"><span class="chip t1"><span class="dot"></span>Minor</span><span class="title-text">Entry refusal</span></div><div class="a-mid"><span class="tabular-nums">03:05</span><span class="avatar-row"><span class="avatar">KW</span></span></div><div class="a-right"><span class="status-confirmed">✓ Confirmed</span></div></div>
+        </div>
+      </div>
+      <p class="rationale">Tier badges don't start at a shared x (widths differ), time is buried mid-row next to avatars instead of owning a column, the long harassment-complaint title gets clipped mid-word, and there's nothing labelling what any of this means.
+        <span class="glance">Glance order: whichever badge colour catches the eye → title (if it fits) → status color on the far right, disconnected from its row</span>
+      </p>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       VARIANT B — Tier · Incident · Time · Status, aligned grid + headers
+       ============================================================ -->
+  <section>
+    <h2 class="block-h">B — Aligned columns, headers</h2>
+    <p class="block-goal">Same column order as today, but as a true CSS grid: every tier badge starts on the same x, time gets its own right-aligned tabular column, and a quiet header row explains each one.</p>
+    <div class="variant">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-head-left">
+            <span class="card-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2 3 6v6c0 5 4 9 9 10 5-1 9-5 9-10V6l-9-4Z"></path></svg></span>
+            <span class="card-title">Incidents</span>
+          </div>
+          <span class="add-action">+ Add incident</span>
+        </div>
+
+        <div class="col-headers b-grid"><span>Tier</span><span>Incident</span><span style="text-align:right;">Time</span><span>Status</span></div>
+
+        <div class="grid-row b-grid"><span class="chip t1"><span class="dot"></span>Minor</span><span class="col-title"><span class="title-text">Entry refusal</span></span><span class="col-time">22:10</span><span class="status-confirmed">✓ Confirmed</span></div>
+        <div class="grid-row b-grid"><span class="chip t1"><span class="dot"></span>Minor</span><span class="col-title"><span class="title-text">Entry refusal</span></span><span class="col-time">22:45</span><span class="status-confirmed">✓ Confirmed</span></div>
+        <div class="grid-row b-grid"><span class="chip t1"><span class="dot"></span>Minor</span><span class="col-title"><span class="title-text">Entry refusal</span></span><span class="col-time">23:20</span><span class="status-confirmed">✓ Confirmed</span></div>
+        <div class="grid-row b-grid"><span class="chip t2"><span class="dot"></span>Moderate</span><span class="col-title"><span class="title-text">Theft / property</span></span><span class="col-time">23:40</span><span class="status-confirmed">✓ Confirmed</span></div>
+        <div class="grid-row b-grid"><span class="chip t2"><span class="dot"></span>Moderate</span><span class="col-title"><span class="title-text">Slip / fall</span></span><span class="col-time">00:50</span><span class="status-confirmed">✓ Confirmed</span></div>
+        <div class="grid-row b-grid"><span class="chip t3"><span class="dot"></span>Serious</span><span class="col-title"><span class="title-text">Violence / altercation</span></span><span class="col-time">01:30</span><span class="status-confirmed">✓ Confirmed</span></div>
+        <div class="grid-row b-grid"><span class="chip t1"><span class="dot"></span>Minor</span><span class="col-title"><span class="title-text">Entry refusal</span></span><span class="col-time">01:55</span><span class="status-confirmed">✓ Confirmed</span></div>
+        <div class="grid-row b-grid"><span class="chip t3"><span class="dot"></span>Serious</span><span class="col-title"><span class="title-text">Medical</span></span><span class="col-time">02:10</span><span class="status-confirmed">✓ Confirmed</span></div>
+        <div class="grid-row b-grid"><span class="chip t2"><span class="dot"></span>Moderate</span><span class="col-title"><span class="title-text">Repeated harassment complaint, ejected after two warnings</span></span><span class="col-time">02:40</span><span class="status-confirmed">✓ Confirmed</span></div>
+        <div class="grid-row b-grid"><span class="chip t1"><span class="dot"></span>Minor</span><span class="col-title"><span class="title-text">Entry refusal</span></span><span class="col-time">03:05</span><span class="status-confirmed">✓ Confirmed</span></div>
+      </div>
+      <p class="rationale"><b>Alignment does the organising.</b> Explicit grid columns mean tier, time and status all form clean vertical edges regardless of label length — the long harassment-complaint title now just wraps to a second line instead of clipping mid-word.
+        <span class="glance">Glance order: tier colour column → incident title → time / status columns</span>
+      </p>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       VARIANT C — Time first, for chronological reading
+       ============================================================ -->
+  <section>
+    <h2 class="block-h">C — Time-first</h2>
+    <p class="block-goal">Identical grid to B, but time leads. Useful when the manager is reconstructing "what happened, in order" rather than scanning by severity.</p>
+    <div class="variant">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-head-left">
+            <span class="card-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2 3 6v6c0 5 4 9 9 10 5-1 9-5 9-10V6l-9-4Z"></path></svg></span>
+            <span class="card-title">Incidents</span>
+          </div>
+          <span class="add-action">+ Add incident</span>
+        </div>
+
+        <div class="col-headers c-grid"><span>Time</span><span>Tier</span><span>Incident</span><span>Status</span></div>
+
+        <div class="grid-row c-grid"><span class="col-time">22:10</span><span class="chip t1"><span class="dot"></span>Minor</span><span class="col-title"><span class="title-text">Entry refusal</span></span><span class="status-confirmed">✓ Confirmed</span></div>
+        <div class="grid-row c-grid"><span class="col-time">22:45</span><span class="chip t1"><span class="dot"></span>Minor</span><span class="col-title"><span class="title-text">Entry refusal</span></span><span class="status-confirmed">✓ Confirmed</span></div>
+        <div class="grid-row c-grid"><span class="col-time">23:20</span><span class="chip t1"><span class="dot"></span>Minor</span><span class="col-title"><span class="title-text">Entry refusal</span></span><span class="status-confirmed">✓ Confirmed</span></div>
+        <div class="grid-row c-grid"><span class="col-time">23:40</span><span class="chip t2"><span class="dot"></span>Moderate</span><span class="col-title"><span class="title-text">Theft / property</span></span><span class="status-confirmed">✓ Confirmed</span></div>
+        <div class="grid-row c-grid"><span class="col-time">00:50</span><span class="chip t2"><span class="dot"></span>Moderate</span><span class="col-title"><span class="title-text">Slip / fall</span></span><span class="status-confirmed">✓ Confirmed</span></div>
+        <div class="grid-row c-grid"><span class="col-time">01:30</span><span class="chip t3"><span class="dot"></span>Serious</span><span class="col-title"><span class="title-text">Violence / altercation</span></span><span class="status-confirmed">✓ Confirmed</span></div>
+        <div class="grid-row c-grid"><span class="col-time">01:55</span><span class="chip t1"><span class="dot"></span>Minor</span><span class="col-title"><span class="title-text">Entry refusal</span></span><span class="status-confirmed">✓ Confirmed</span></div>
+        <div class="grid-row c-grid"><span class="col-time">02:10</span><span class="chip t3"><span class="dot"></span>Serious</span><span class="col-title"><span class="title-text">Medical</span></span><span class="status-confirmed">✓ Confirmed</span></div>
+        <div class="grid-row c-grid"><span class="col-time">02:40</span><span class="chip t2"><span class="dot"></span>Moderate</span><span class="col-title"><span class="title-text">Repeated harassment complaint, ejected after two warnings</span></span><span class="status-confirmed">✓ Confirmed</span></div>
+        <div class="grid-row c-grid"><span class="col-time">03:05</span><span class="chip t1"><span class="dot"></span>Minor</span><span class="col-title"><span class="title-text">Entry refusal</span></span><span class="status-confirmed">✓ Confirmed</span></div>
+      </div>
+      <p class="rationale"><b>Matches the mental model of a shift.</b> Reading top-to-bottom now retraces the night itself; tier becomes a second-glance detail rather than the entry point. Better for "walk me through tonight" than "show me what's serious."
+        <span class="glance">Glance order: time (the night's spine) → tier colour → incident title</span>
+      </p>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       VARIANT D — Minimal: no Status column at all
+       ============================================================ -->
+  <section>
+    <h2 class="block-h">D — Minimal, no status column</h2>
+    <p class="block-goal">Every row here is already reviewed by definition — repeating "Confirmed" ten times is decoration, not information. State it once, in the header, instead.</p>
+    <div class="variant">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-head-left">
+            <span class="card-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2 3 6v6c0 5 4 9 9 10 5-1 9-5 9-10V6l-9-4Z"></path></svg></span>
+            <span class="card-title">Incidents<span class="card-meta">10 incidents · all confirmed</span></span>
+          </div>
+          <span class="add-action">+ Add incident</span>
+        </div>
+
+        <div class="col-headers d-grid"><span>Tier</span><span>Incident</span><span style="text-align:right;">Time</span></div>
+
+        <div class="grid-row d-grid"><span class="chip t1"><span class="dot"></span>Minor</span><span class="col-title"><span class="title-text">Entry refusal</span></span><span class="col-time">22:10</span></div>
+        <div class="grid-row d-grid"><span class="chip t1"><span class="dot"></span>Minor</span><span class="col-title"><span class="title-text">Entry refusal</span></span><span class="col-time">22:45</span></div>
+        <div class="grid-row d-grid"><span class="chip t1"><span class="dot"></span>Minor</span><span class="col-title"><span class="title-text">Entry refusal</span></span><span class="col-time">23:20</span></div>
+        <div class="grid-row d-grid"><span class="chip t2"><span class="dot"></span>Moderate</span><span class="col-title"><span class="title-text">Theft / property</span></span><span class="col-time">23:40</span></div>
+        <div class="grid-row d-grid"><span class="chip t2"><span class="dot"></span>Moderate</span><span class="col-title"><span class="title-text">Slip / fall</span></span><span class="col-time">00:50</span></div>
+        <div class="grid-row d-grid"><span class="chip t3"><span class="dot"></span>Serious</span><span class="col-title"><span class="title-text">Violence / altercation</span></span><span class="col-time">01:30</span></div>
+        <div class="grid-row d-grid"><span class="chip t1"><span class="dot"></span>Minor</span><span class="col-title"><span class="title-text">Entry refusal</span></span><span class="col-time">01:55</span></div>
+        <div class="grid-row d-grid"><span class="chip t3"><span class="dot"></span>Serious</span><span class="col-title"><span class="title-text">Medical</span></span><span class="col-time">02:10</span></div>
+        <div class="grid-row d-grid"><span class="chip t2"><span class="dot"></span>Moderate</span><span class="col-title"><span class="title-text">Repeated harassment complaint, ejected after two warnings</span></span><span class="col-time">02:40</span></div>
+        <div class="grid-row d-grid"><span class="chip t1"><span class="dot"></span>Minor</span><span class="col-title"><span class="title-text">Entry refusal</span></span><span class="col-time">03:05</span></div>
+      </div>
+      <p class="rationale"><b>Say it once.</b> Ten identical green pills add colour-noise without adding information once every row shares the same status; the header carries that fact a single time so rows stay about what happened, not that it's done.
+        <span class="glance">Glance order: tier colour → incident title → time (status is read once, at the top, not per row)</span>
+      </p>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       VARIANT E — Own proposal: grouped by severity, chronological within group
+       ============================================================ -->
+  <section>
+    <h2 class="block-h">E — Grouped by severity</h2>
+    <p class="block-goal">The tier badge is the single most decision-relevant signal on this list, so it becomes the grouping key, not just a per-row label. Rows stay chronological within each group.</p>
+    <div class="variant">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-head-left">
+            <span class="card-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2 3 6v6c0 5 4 9 9 10 5-1 9-5 9-10V6l-9-4Z"></path></svg></span>
+            <span class="card-title">Incidents</span>
+          </div>
+          <span class="add-action">+ Add incident</span>
+        </div>
+
+        <div class="e-group-head t3"><span class="dot"></span>Serious <span class="count">· 2</span></div>
+        <div class="col-headers e-grid"><span>Incident</span><span style="text-align:right;">Time</span><span>Status</span></div>
+        <div class="grid-row e-grid"><span class="col-title"><span class="title-text">Violence / altercation</span></span><span class="col-time">01:30</span><span class="status-confirmed">✓ Confirmed</span></div>
+        <div class="grid-row e-grid"><span class="col-title"><span class="title-text">Medical</span></span><span class="col-time">02:10</span><span class="status-confirmed">✓ Confirmed</span></div>
+
+        <div class="e-group-head t2"><span class="dot"></span>Moderate <span class="count">· 3</span></div>
+        <div class="grid-row e-grid"><span class="col-title"><span class="title-text">Theft / property</span></span><span class="col-time">23:40</span><span class="status-confirmed">✓ Confirmed</span></div>
+        <div class="grid-row e-grid"><span class="col-title"><span class="title-text">Slip / fall</span></span><span class="col-time">00:50</span><span class="status-confirmed">✓ Confirmed</span></div>
+        <div class="grid-row e-grid"><span class="col-title"><span class="title-text">Repeated harassment complaint, ejected after two warnings</span></span><span class="col-time">02:40</span><span class="status-confirmed">✓ Confirmed</span></div>
+
+        <div class="e-group-head t1"><span class="dot"></span>Minor <span class="count">· 5</span></div>
+        <div class="grid-row e-grid"><span class="col-title"><span class="title-text">Entry refusal</span></span><span class="col-time">22:10</span><span class="status-confirmed">✓ Confirmed</span></div>
+        <div class="grid-row e-grid"><span class="col-title"><span class="title-text">Entry refusal</span></span><span class="col-time">22:45</span><span class="status-confirmed">✓ Confirmed</span></div>
+        <div class="grid-row e-grid"><span class="col-title"><span class="title-text">Entry refusal</span></span><span class="col-time">23:20</span><span class="status-confirmed">✓ Confirmed</span></div>
+        <div class="grid-row e-grid"><span class="col-title"><span class="title-text">Entry refusal</span></span><span class="col-time">01:55</span><span class="status-confirmed">✓ Confirmed</span></div>
+        <div class="grid-row e-grid"><span class="col-title"><span class="title-text">Entry refusal</span></span><span class="col-time">03:05</span><span class="status-confirmed">✓ Confirmed</span></div>
+      </div>
+      <p class="rationale"><b>Scales the way volume actually grows.</b> A quiet night in the Serious group is reassuring in half a second; a busy one surfaces immediately, before scrolling past ten "Entry refusal" rows to find it. Tier badge drops per-row since the group already states it.
+        <span class="glance">Glance order: group heading (severity + count) → incident title within group → time / status</span>
+      </p>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       RECOMMENDED
+       ============================================================ -->
+  <section class="recommended">
+    <h2>Recommended</h2>
+    <p><b>B</b> — it fixes every concrete problem in A (alignment, wrapping, missing headers) without changing the reading model the manager already has. E is the more powerful idea for a genuinely busy night, worth keeping in reserve if incident volume regularly climbs past ~15 and severity needs to be findable at a glance rather than read row by row.</p>
+  </section>
+
+</div>
+</body>
+</html>
