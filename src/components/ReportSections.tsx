@@ -8,11 +8,13 @@ import {
   UserCheckIcon,
   WrenchIcon } from
 'lucide-react';
-import { ReviewIncident, Statement, StatementSection } from '../types/report';
+import { RestockRequest, ReviewIncident, Statement, StatementSection } from '../types/report';
+import { suggestRestock } from '../utils/mockAi';
 import { nightOrder } from '../utils/time';
 import { IncidentRow, INCIDENT_GRID } from './IncidentRow';
 import { StatementRow } from './StatementRow';
 import { EmptySection } from './EmptySection';
+import { RestockFollowUp } from './RestockFollowUp';
 
 interface ReportSectionsProps {
   incidents: ReviewIncident[];
@@ -27,12 +29,15 @@ interface ReportSectionsProps {
   sections: StatementSection[];
   /** Whether notes have ever been pushed — flips an empty section from blank to "Not mentioned tonight". */
   notesPushed: boolean;
+  /** Statements just written by a note push — their text flashes teal. */
   newStatementIds: string[];
   openStatementId: string | null;
   onOpenSource: (statement: Statement) => void;
   onOpenIncident: (incident: ReviewIncident) => void;
   onChangeStatement: (id: string, text: string) => void;
   onDeleteStatement: (id: string) => void;
+  /** The manager answered (or removed) a statement's restock follow-up. */
+  onChangeRestock: (statementId: string, request: RestockRequest) => void;
   onAddInfo: (sectionId: string) => void;
 }
 
@@ -134,6 +139,7 @@ export function ReportSections({
   onOpenIncident,
   onChangeStatement,
   onDeleteStatement,
+  onChangeRestock,
   onAddInfo
 }: ReportSectionsProps) {
   const chronological = [...incidents].sort((a, b) => nightOrder(a.time) - nightOrder(b.time));
@@ -199,18 +205,37 @@ export function ReportSections({
             {isEmpty ?
             notesPushed && <EmptySection text="Not mentioned tonight" /> :
 
-            <ul className="-mx-2 space-y-1">
-                {section.statements.map((statement) =>
-              <StatementRow
-                key={statement.id}
-                statement={statement}
-                active={openStatementId === statement.id}
-                chipHighlight={newStatementIds.includes(statement.id)}
-                onOpenSource={onOpenSource}
-                onChangeText={onChangeStatement}
-                onDelete={onDeleteStatement} />
+            <ul className="-mx-2 space-y-0.5">
+                {section.statements.map((statement) => {
+                // Mocked AI: a supplies line naming bottled stock gets a
+                // "restock this?" follow-up until it's answered or dismissed.
+                const restockItems = suggestRestock(section.id, statement.text);
+                const followUpOpen =
+                restockItems.length > 0 && statement.restockRequest?.status !== 'dismissed';
+                return (
+                  <React.Fragment key={statement.id}>
+                      <StatementRow
+                      statement={statement}
+                      active={openStatementId === statement.id}
+                      commented={followUpOpen}
+                      highlightFrom={newStatementIds.includes(statement.id) ? 0 : null}
+                      onOpenSource={onOpenSource}
+                      onChangeText={onChangeStatement}
+                      onDelete={onDeleteStatement} />
 
-              )}
+                      {followUpOpen &&
+                    <li className="px-3 pb-1.5 pt-1">
+                          <RestockFollowUp
+                        key={restockItems.join('|')}
+                        suggestedItems={restockItems}
+                        request={statement.restockRequest}
+                        onChange={(request) => onChangeRestock(statement.id, request)} />
+
+                        </li>
+                    }
+                    </React.Fragment>);
+
+              })}
               </ul>
             }
           </SectionCard>);

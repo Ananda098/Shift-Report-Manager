@@ -1,4 +1,4 @@
-import { Tier } from '../types/report';
+import { RestockUrgency, Tier } from '../types/report';
 import { statementSections } from '../data/statements';
 
 export interface ParsedStatement {
@@ -99,6 +99,54 @@ alreadyUsed: ReadonlySet<string>)
   }));
 
   return { statements, incidents };
+}
+
+/**
+ * Bottled stock the venue reorders, and the words that name it in a supplies
+ * line. A real model would recognise these at runtime; this fixed vocabulary
+ * keeps the "add a restock request?" follow-up deterministic.
+ */
+const RESTOCK_STOCK: {name: string;matches: string[];}[] = [
+{ name: 'Vodka', matches: ['vodka'] },
+{ name: 'Jägermeister', matches: ['jägermeister', 'jagermeister', 'jäger', 'jager'] },
+{ name: 'Tequila', matches: ['tequila'] },
+{ name: 'Gin', matches: ['gin'] },
+{ name: 'Rum', matches: ['rum'] },
+{ name: 'Whisky', matches: ['whisky', 'whiskey'] },
+{ name: 'Prosecco', matches: ['prosecco'] },
+{ name: 'Tonic', matches: ['tonic'] }];
+
+
+/** Quantities offered per item, plus the fallback when a step is skipped. */
+export const RESTOCK_QUANTITIES = [6, 12, 24];
+export const RESTOCK_DEFAULT_QTY = 12;
+
+export const RESTOCK_URGENCIES: RestockUrgency[] = [
+'Before next shift',
+'This week',
+'Next regular order'];
+
+
+/**
+ * Mocked "this sounds like it needs reordering" check: which bottled items a
+ * supplies statement names, in the order they appear in it. Anything outside
+ * the supplies section, or naming nothing orderable, gets no follow-up.
+ */
+export function suggestRestock(sectionId: string, text: string): string[] {
+  if (sectionId !== 'supplies') return [];
+
+  return RESTOCK_STOCK.
+  map(({ name, matches }) => {
+    const at = matches.reduce((earliest, phrase) => {
+      const index = text.search(new RegExp(`\\b${phrase}\\b`, 'i'));
+      if (index === -1) return earliest;
+      return earliest === -1 ? index : Math.min(earliest, index);
+    }, -1);
+    return { name, at };
+  }).
+  filter((found) => found.at !== -1).
+  sort((a, b) => a.at - b.at).
+  map((found) => found.name);
 }
 
 /** One row the "+ Add information" drawer asks for a section — styled like a

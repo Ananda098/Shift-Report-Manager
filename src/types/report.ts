@@ -84,12 +84,33 @@ export interface AddedSource {
   time: string;
 }
 
+/** One line of a restock request: what to order and how much of it. */
+export interface RestockItem {
+  name: string;
+  qty: number;
+}
+
+export type RestockUrgency = 'Before next shift' | 'This week' | 'Next regular order';
+
+/**
+ * The mocked AI's restock follow-up on a supplies statement. It only ever
+ * exists once the manager has answered the suggestion: `dismissed` when they
+ * said no (or removed the request), `added` once they've filled it in.
+ */
+export interface RestockRequest {
+  items: RestockItem[];
+  urgency: RestockUrgency | null;
+  status: 'suggested' | 'dismissed' | 'added';
+}
+
 export interface Statement {
   id: string;
   chips: string[];
   text: string;
   source: Source;
   addedSources?: AddedSource[];
+  /** Set once the manager has answered the restock follow-up. */
+  restockRequest?: RestockRequest;
 }
 
 export interface StatementSection {

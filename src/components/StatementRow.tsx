@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { SearchIcon } from 'lucide-react';
 import { Statement } from '../types/report';
-import { HighlightText } from './HighlightText';
 
 interface StatementRowProps {
   statement: Statement;
@@ -10,8 +9,6 @@ interface StatementRowProps {
   commented?: boolean;
   /** Character index from which newly added text is briefly highlighted. */
   highlightFrom?: number | null;
-  /** Briefly tints automatically assigned chips. */
-  chipHighlight?: boolean;
   onOpenSource: (statement: Statement) => void;
   onChangeText: (id: string, text: string) => void;
   onDelete: (id: string) => void;
@@ -22,7 +19,6 @@ export function StatementRow({
   active,
   commented = false,
   highlightFrom = null,
-  chipHighlight = false,
   onOpenSource,
   onChangeText,
   onDelete
@@ -79,30 +75,19 @@ export function StatementRow({
     <li
       id={`statement-${statement.id}`}
       className={[
-      'group relative rounded-lg border px-3 py-2.5 pr-10 transition-colors duration-150 ease-out',
+      'group relative flex gap-2.5 rounded-lg border px-3 py-2 pr-10 transition-colors duration-150 ease-out',
       editing ? 'border-teal bg-teal-fill/30' : 'border-transparent hover:bg-raised'].
       join(' ')}>
-      
-      {active && !editing &&
-      <span aria-hidden className="absolute inset-y-1 left-0 w-0.5 rounded-full bg-teal" />
-      }
 
-      <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
-        {statement.chips.map((chip) =>
-        <span
-          key={chip}
-          className="rounded-md border border-transparent bg-raised px-1.5 py-0.5 text-label text-muted">
-          
-            <HighlightText active={chipHighlight}>{chip}</HighlightText>
-          </span>
-        )}
-        <button
-          type="button"
-          className="rounded-md border border-dashed border-line px-2 py-1.5 text-label text-faint opacity-100 outline-none transition-[opacity,color] duration-150 ease-out hover:text-muted focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-teal dt:px-1.5 dt:py-0.5 dt:opacity-0 dt:group-hover:opacity-100">
-          
-          + tag
-        </button>
-      </div>
+      {/* Line marker — keeps stacked statements separable at a glance, and
+          carries the "source is open" accent the left rule used to. */}
+      <span
+        aria-hidden
+        className={[
+        'mt-[10px] h-1.5 w-1.5 shrink-0 rounded-full transition-colors duration-150 ease-out',
+        active ? 'bg-teal' : 'bg-faint group-hover:bg-muted'].
+        join(' ')} />
+
 
       {editing ?
       <>
@@ -127,7 +112,7 @@ export function StatementRow({
             }
           }}
           className="block w-full resize-none overflow-hidden bg-transparent text-body text-txt caret-teal outline-none" />
-        
+
         </> :
 
       <p
@@ -141,10 +126,10 @@ export function StatementRow({
           }
         }}
         className={[
-        'cursor-text rounded-sm text-body text-txt outline-none focus-visible:ring-2 focus-visible:ring-teal',
+        'min-w-0 flex-1 cursor-text rounded-sm text-body text-txt outline-none focus-visible:ring-2 focus-visible:ring-teal',
         commented ? 'underline decoration-teal/60 decoration-2 underline-offset-[5px]' : ''].
         join(' ')}>
-        
+
           {highlightFrom == null ?
         statement.text :
 
@@ -155,7 +140,7 @@ export function StatementRow({
             'transition-colors duration-300 ease-out',
             highlightFading ? 'text-txt' : 'text-teal'].
             join(' ')}>
-            
+
                 {statement.text.slice(highlightFrom)}
               </span>
             </>
@@ -168,13 +153,13 @@ export function StatementRow({
         aria-label="Where this came from"
         onClick={() => onOpenSource(statement)}
         className={[
-        'absolute right-2 top-2 rounded-md p-2.5 outline-none transition-[opacity,color] duration-150 ease-out dt:p-1.5',
+        'absolute right-2 top-1.5 rounded-md p-2.5 outline-none transition-[opacity,color] duration-150 ease-out dt:p-1.5',
         'focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-teal',
         active ?
         'text-teal opacity-100' :
         'text-faint opacity-100 hover:text-txt dt:opacity-0 dt:group-hover:opacity-100'].
         join(' ')}>
-        
+
         <SearchIcon size={15} strokeWidth={2} />
       </button>
     </li>);

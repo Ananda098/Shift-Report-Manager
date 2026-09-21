@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { NoteEntry, NoteMatch, ReviewIncident, Statement, StatementSection } from '../types/report';
+import {
+  NoteEntry,
+  NoteMatch,
+  RestockRequest,
+  ReviewIncident,
+  Statement,
+  StatementSection } from
+'../types/report';
 import { statementSections } from '../data/statements';
 import { people } from '../data/people';
 import { sortForQueue, systemEntry } from '../utils/reviewActions';
@@ -487,6 +494,18 @@ export function AppShell({
     setManuallyEditedIds((prev) => new Set(prev).add(id));
   };
 
+  /** The manager's answer to a statement's restock follow-up. Dismissed ones
+      stay dismissed — later note pushes only ever append statements, so the
+      same suggestion never comes back. */
+  const setStatementRestock = (id: string, restockRequest: RestockRequest) => {
+    setSections((prev) =>
+    prev.map((section) => ({
+      ...section,
+      statements: section.statements.map((s) => s.id === id ? { ...s, restockRequest } : s)
+    }))
+    );
+  };
+
   const deleteStatement = (id: string) => {
     setSections((prev) =>
     prev.map((section) => ({
@@ -507,6 +526,7 @@ export function AppShell({
       <SourcePanel
         source={openStatement.source}
         addedSources={openStatement.addedSources}
+        chips={openStatement.chips}
         onClose={() => setOpenStatementId(null)} />
 
 
@@ -577,6 +597,7 @@ export function AppShell({
               onOpenIncident={(incident) => openIncidentPreview(incident.id)}
               onChangeStatement={updateStatement}
               onDeleteStatement={deleteStatement}
+              onChangeRestock={setStatementRestock}
               onAddInfo={(sectionId) => openDrawer({ kind: 'info', sectionId })} />
 
           </div>

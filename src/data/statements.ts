@@ -108,6 +108,17 @@ export const statementSections: StatementSection[] = [
     }
   },
   {
+    id: 's-needs-3',
+    chips: ['inventory'],
+    text: 'Vodka and Jägermeister are both down to the last bottles behind bar 1.',
+    source: {
+      quote: 'We are nearly out of vodka and Jägermeister behind bar 1, last bottles now.',
+      person: people.sofia,
+      time: '02:40',
+      input: 'Voice'
+    }
+  },
+  {
     id: 's-needs-2',
     chips: ['kitchen', 'equipment'],
     text: 'Kitchen needs another set of tongs and a replacement basket for the small fryer.',
