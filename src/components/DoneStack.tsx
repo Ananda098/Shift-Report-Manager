@@ -12,8 +12,6 @@ interface DoneStackProps {
 
 export function DoneStack({ incidents, currentId, onSelect }: DoneStackProps) {
   const [pinned, setPinned] = useState(false);
-  const [hovering, setHovering] = useState(false);
-  const visible = pinned || hovering;
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -30,14 +28,10 @@ export function DoneStack({ incidents, currentId, onSelect }: DoneStackProps) {
   if (incidents.length === 0) return null;
 
   return (
-    <div
-      ref={containerRef}
-      onMouseEnter={() => setHovering(true)}
-      onMouseLeave={() => setHovering(false)}
-      className="shrink-0 px-3 pb-6 pt-4">
+    <div ref={containerRef} className="shrink-0 px-3 pb-6 pt-4">
 
       <AnimatePresence initial={false} mode="wait">
-        {visible ?
+        {pinned ?
         <motion.div
           key="list"
           initial={{ opacity: 0, y: -4 }}
@@ -59,7 +53,7 @@ export function DoneStack({ incidents, currentId, onSelect }: DoneStackProps) {
                 <li key={incident.id}>
                   <button
                     type="button"
-                    onClick={() => pinned ? onSelect(incident.id) : setPinned(true)}
+                    onClick={() => onSelect(incident.id)}
                     aria-current={current ? 'true' : undefined}
                     className={[
                     'relative w-full rounded-lg px-3.5 py-3.5 text-left outline-none transition-colors duration-150 ease-out',
@@ -98,13 +92,13 @@ export function DoneStack({ incidents, currentId, onSelect }: DoneStackProps) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
-          className="relative block h-[56px] w-full text-left outline-none focus-visible:ring-2 focus-visible:ring-teal">
+          className="group relative block h-[56px] w-full text-left outline-none focus-visible:ring-2 focus-visible:ring-teal">
 
-          <span className="absolute inset-x-3 top-3 h-10 rounded-lg border border-line bg-card/60" />
-          <span className="absolute inset-x-1.5 top-1.5 h-10 rounded-lg border border-line bg-card/80" />
-          <span className="absolute inset-x-0 top-0 flex h-10 items-center justify-between rounded-lg border border-line bg-card px-2.5">
+          <span className="absolute inset-x-3 top-3 h-10 rounded-lg border border-line bg-card/60 transition-transform duration-200 ease-out motion-safe:group-hover:translate-y-2 motion-safe:group-focus-visible:translate-y-2" />
+          <span className="absolute inset-x-1.5 top-1.5 h-10 rounded-lg border border-line bg-card/80 transition-transform duration-200 ease-out motion-safe:group-hover:translate-y-1 motion-safe:group-focus-visible:translate-y-1" />
+          <span className="absolute inset-x-0 top-0 flex h-10 items-center justify-between rounded-lg border border-line bg-card px-2.5 transition-transform duration-200 ease-out motion-safe:group-hover:-translate-y-px motion-safe:group-focus-visible:-translate-y-px">
             <span className="text-meta text-muted">{incidents.length} done</span>
-            <span className="text-label text-faint">Click to open</span>
+            <span className="text-label text-faint transition-colors duration-200 ease-out group-hover:text-txt group-focus-visible:text-txt">Click to open</span>
           </span>
         </motion.button>
         }

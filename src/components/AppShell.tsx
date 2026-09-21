@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { ReviewIncident, Statement, StatementSection } from '../types/report';
+import { NoteEntry, NoteMatch, ReviewIncident, Statement, StatementSection } from '../types/report';
 import { statementSections } from '../data/statements';
 import { people } from '../data/people';
 import { sortForQueue, systemEntry } from '../utils/reviewActions';
+import { noteTimeForIndex } from '../utils/time';
 import {
   ParsedIncident,
   ParsedStatement,
@@ -14,6 +15,7 @@ import { NavRail } from './NavRail';
 import { ReportHeader } from './ReportHeader';
 import { ReviewModule } from './ReviewModule';
 import { NotesCard } from './NotesCard';
+import { EditNotePanel } from './EditNotePanel';
 import { ReportSections } from './ReportSections';
 import { SourcePanel } from './SourcePanel';
 import { MarginRail, MarginRailItem } from './MarginRail';
@@ -60,10 +62,12 @@ export function AppShell({
   onResolveHelp
 }: AppShellProps) {
   const [view, setView] = useState<'report' | 'review'>('report');
-  const [notes, setNotes] = useState('');
+  const [notesDraft, setNotesDraft] = useState('');
+  const [notes, setNotes] = useState<NoteEntry[]>([]);
   const [notesPushed, setNotesPushed] = useState(false);
-  const [notesCollapsed, setNotesCollapsed] = useState(false);
   const [pushedKeys, setPushedKeys] = useState<Set<string>>(new Set());
+  const [manuallyEditedIds, setManuallyEditedIds] = useState<Set<string>>(new Set());
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [sections, setSections] = useState<StatementSection[]>(
     statementSections.map((section) => ({ ...section, statements: [] }))
   );
@@ -77,18 +81,16 @@ export function AppShell({
   const [toast, setToast] = useState<string | null>(null);
   const [panelOwnsPrimary, setPanelOwnsPrimary] = useState(false);
 
-  const allStatements = sections.flatMap((section) => section.statements);
-  const openStatement = allStatements.find((s) => s.id === openStatementId) ?? null;
+  const openStatement = sections.flatMap((section) => section.statements).find((s) => s.id === openStatementId) ?? null;
   const openIncident = incidents.find((i) => i.id === openIncidentId) ?? null;
   const addInfoSection = sections.find((s) => s.id === addInfoSectionId) ?? null;
   const addInfoQuestions = addInfoSection ? SECTION_QUESTIONS[addInfoSection.id] ?? [] : [];
   const addInfoInitialAnswers = addInfoQuestions.map(
     (q) => addInfoSection?.statements.find((s) => s.chips.includes(q.chip))?.text ?? ''
   );
+  const editingNote = notes.find((n) => n.id === editingNoteId) ?? null;
   const reviewedCount = incidents.filter((incident) => incident.status !== 'pending').length;
   const allReviewed = reviewedCount === incidents.length;
-  const notesStatementCount = allStatements.filter((s) => s.source.input === 'Note').length;
-  const notesIncidentCount = incidents.filter((i) => i.id.startsWith('i-note-')).length;
   // One primary per screen: anything layered on top takes the primary slot.
   const demotePagePrimaries = panelOwnsPrimary || toast !== null;
 
@@ -129,18 +131,23 @@ export function AppShell({
     window.setTimeout(() => setNewIncidentId((v) => v === id ? null : v), 2200);
   };
 
-  /** "Add my notes to the report": mocked AI splits new notes into tagged
+  /** "Add my notes to the report": mocked AI splits the note into tagged
       statements per section, and any incident-shaped line becomes a real
       incident awaiting review instead of report text. Already-pushed
-      phrases are skipped, so re-pushing never duplicates or overwrites —
-      and the card settles into its compact summary either way. */
+      phrases are skipped, so pushing several notes over the night never
+      duplicates or overwrites. The input clears and the note is logged as
+      its own entry so the manager can keep adding more. */
   const handlePushNotes = () => {
-    const { statements: parsed, incidents: parsedIncidents } = parseNotes(notes, pushedKeys);
+    const text = notesDraft.trim();
+    if (!text) return;
+
+    const { statements: parsed, incidents: parsedIncidents } = parseNotes(text, pushedKeys);
     setNotesPushed(true);
-    setNotesCollapsed(true);
+
+    const matches: NoteMatch[] = [];
+    const newIds: string[] = [];
 
     if (parsed.length > 0) {
-      const newIds: string[] = [];
       setSections((prev) =>
       prev.map((section) => {
         const toAdd = parsed.filter((p) => p.sectionId === section.id);
@@ -148,6 +155,7 @@ export function AppShell({
         const added: Statement[] = toAdd.map((p) => {
           const id = `s-note-${section.id}-${p.key}`;
           newIds.push(id);
+          matches.push({ key: p.key, sectionId: section.id, statementId: id });
           return {
             id,
             chips: p.chips,
@@ -161,9 +169,12 @@ export function AppShell({
       flashNew(newIds);
     }
 
+    const incidentIds: string[] = [];
     parsedIncidents.forEach((inc) => {
+      const id = `i-note-${inc.key}`;
+      incidentIds.push(id);
       onAddIncident({
-        id: `i-note-${inc.key}`,
+        id,
         tier: inc.tier,
         type: inc.type,
         date: 'Sun 21',
@@ -190,8 +201,138 @@ export function AppShell({
       return next;
     });
 
+    setNotes((prev) => [
+    {
+      id: `note-${Date.now()}`,
+      text,
+      time: noteTimeForIndex(prev.length),
+      statementIds: matches.map((m) => m.statementId),
+      matches,
+      incidentIds
+    },
+    ...prev]
+    );
+    setNotesDraft('');
+
     const titleById = Object.fromEntries(sections.map((s) => [s.id, s.title]));
     setToast(summarisePush(parsed, parsedIncidents, titleById));
+  };
+
+  /** Editing a note re-parses its new text: statements traced back to this
+      note that the manager hasn't manually edited (or deleted) are updated
+      or removed to match, statements for phrases no longer present are
+      dropped, and newly-recognised phrases are added. Manually-touched
+      statements, and incidents already created from this note, are left
+      alone. */
+  const handleSaveNoteEdit = (noteId: string, newText: string) => {
+    const note = notes.find((n) => n.id === noteId);
+    setEditingNoteId(null);
+    if (!note || newText === note.text) return;
+
+    const previousKeys = new Set(note.matches.map((m) => m.key));
+    const excludeKeys = new Set(pushedKeys);
+    previousKeys.forEach((key) => excludeKeys.delete(key));
+
+    const { statements: parsed, incidents: parsedIncidents } = parseNotes(newText, excludeKeys);
+    const parsedByKey = new Map(parsed.map((p) => [p.key, p]));
+
+    const newMatches: NoteMatch[] = [];
+    const changedIds: string[] = [];
+
+    setSections((prev) =>
+    prev.map((section) => {
+      let statements = section.statements;
+
+      note.matches.
+      filter((m) => m.sectionId === section.id).
+      forEach((m) => {
+        const index = statements.findIndex((s) => s.id === m.statementId);
+        if (manuallyEditedIds.has(m.statementId)) {
+          if (index !== -1) newMatches.push(m);
+          return;
+        }
+        const stillPresent = parsedByKey.get(m.key);
+        if (!stillPresent) {
+          if (index !== -1) statements = statements.filter((_, i) => i !== index);
+          return;
+        }
+        if (index !== -1 && statements[index].text !== stillPresent.text) {
+          statements = statements.map((s, i) =>
+          i === index ?
+          { ...s, text: stillPresent.text, source: { ...s.source, quote: stillPresent.quote } } :
+          s
+          );
+          changedIds.push(m.statementId);
+        }
+        if (index !== -1) newMatches.push(m);
+      });
+
+      parsed.
+      filter((p) => p.sectionId === section.id && !previousKeys.has(p.key)).
+      forEach((p) => {
+        const id = `s-note-${section.id}-${p.key}`;
+        statements = [
+        ...statements,
+        {
+          id,
+          chips: p.chips,
+          text: p.text,
+          source: { quote: p.quote, person: people.you, time: note.time, input: 'Note' }
+        }];
+
+        newMatches.push({ key: p.key, sectionId: section.id, statementId: id });
+        changedIds.push(id);
+      });
+
+      return { ...section, statements };
+    })
+    );
+
+    parsedIncidents.forEach((inc) => {
+      onAddIncident({
+        id: `i-note-${inc.key}`,
+        tier: inc.tier,
+        type: inc.type,
+        date: 'Sun 21',
+        time: inc.time,
+        location: inc.location,
+        status: 'pending',
+        reportedBy: [],
+        description: inc.description,
+        summary: inc.description,
+        evidence: [],
+        details: [
+        { id: 'time', label: 'Time', values: [inc.time] },
+        { id: 'location', label: 'Location', values: [inc.location] },
+        { id: 'parties', label: 'Parties', values: ['Not yet identified'] }],
+
+        history: [systemEntry('Added from your notes — awaiting review')]
+      });
+    });
+
+    setPushedKeys((prev) => {
+      const next = new Set(prev);
+      previousKeys.forEach((key) => next.delete(key));
+      newMatches.forEach((m) => next.add(m.key));
+      parsedIncidents.forEach((i) => next.add(i.key));
+      return next;
+    });
+
+    setNotes((prev) =>
+    prev.map((n) =>
+    n.id === noteId ?
+    {
+      ...n,
+      text: newText,
+      statementIds: newMatches.map((m) => m.statementId),
+      matches: newMatches,
+      incidentIds: [...n.incidentIds, ...parsedIncidents.map((i) => `i-note-${i.key}`)]
+    } :
+    n
+    )
+    );
+
+    if (changedIds.length > 0) flashNew(changedIds);
   };
 
   /** "+ Add information" drawer: syncs the drawer's rows onto the section —
@@ -249,6 +390,7 @@ export function AppShell({
       statements: section.statements.map((s) => s.id === id ? { ...s, text } : s)
     }))
     );
+    setManuallyEditedIds((prev) => new Set(prev).add(id));
   };
 
   const deleteStatement = (id: string) => {
@@ -259,6 +401,7 @@ export function AppShell({
     }))
     );
     setOpenStatementId((current) => current === id ? null : current);
+    setManuallyEditedIds((prev) => new Set(prev).add(id));
   };
 
   const marginItems: MarginRailItem[] = [];
@@ -305,13 +448,11 @@ export function AppShell({
 
             <div className="mt-6 mb-7">
               <NotesCard
-                value={notes}
-                onChange={setNotes}
+                draft={notesDraft}
+                onChangeDraft={setNotesDraft}
                 onAddToReport={handlePushNotes}
-                collapsed={notesCollapsed}
-                onExpand={() => setNotesCollapsed(false)}
-                statementCount={notesStatementCount}
-                incidentCount={notesIncidentCount} />
+                notes={notes}
+                onEditNote={setEditingNoteId} />
 
             </div>
 
@@ -394,6 +535,14 @@ export function AppShell({
           hasExistingContent={addInfoSection.statements.length > 0}
           onClose={() => setAddInfoSectionId(null)}
           onAdd={(rows) => handleAddInfo(addInfoSection.id, rows)} />
+
+        }
+        {editingNote &&
+        <EditNotePanel
+          key={`edit-note-${editingNote.id}`}
+          note={editingNote}
+          onClose={() => setEditingNoteId(null)}
+          onSave={handleSaveNoteEdit} />
 
         }
       </AnimatePresence>

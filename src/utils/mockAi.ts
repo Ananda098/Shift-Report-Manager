@@ -145,7 +145,7 @@ export const SECTION_QUESTIONS: Record<string, SectionQuestion[]> = {
     sampleAnswer: 'Hit capacity briefly around one, held the door for ten minutes.'
   }],
 
-  concerning: [
+  safety: [
   {
     label: 'Security',
     placeholder: 'Any safety or security issue?',
@@ -171,7 +171,7 @@ export const SECTION_QUESTIONS: Record<string, SectionQuestion[]> = {
     sampleAnswer: 'Regular in the grey jacket was asked to slow down on drinks twice.'
   }],
 
-  crew: [
+  staff: [
   {
     label: 'Staffing',
     placeholder: 'Fully staffed and on time?',
@@ -197,30 +197,30 @@ export const SECTION_QUESTIONS: Record<string, SectionQuestion[]> = {
     sampleAnswer: 'New door staff still unsure on the ID-check process.'
   }],
 
-  needs: [
-  {
-    label: 'Inventory',
-    placeholder: 'What ran low or out?',
-    chip: 'inventory',
-    sampleAnswer: 'Running low on cups and ice by close.'
-  },
+  supplies: [
   {
     label: 'Equipment',
-    placeholder: 'Anything need fixing?',
+    placeholder: 'Anything broken or not working?',
     chip: 'equipment',
     sampleAnswer: 'One of the till card readers is intermittent.'
   },
   {
-    label: 'Supplies',
-    placeholder: 'Anything to reorder?',
-    chip: 'supplies',
-    sampleAnswer: 'Reorder tonic and lime before Friday.'
+    label: 'Stock',
+    placeholder: 'Anything running low or out?',
+    chip: 'inventory',
+    sampleAnswer: 'Running low on cups and ice by close.'
   },
   {
-    label: 'Facilities',
-    placeholder: 'Facilities issue for day team?',
-    chip: 'facilities',
-    sampleAnswer: 'Back door lock is sticking, needs a look.'
+    label: 'Vendors',
+    placeholder: 'Any issue with suppliers or third parties?',
+    chip: 'vendors',
+    sampleAnswer: 'Linen delivery arrived a day late again.'
+  },
+  {
+    label: 'Requests',
+    placeholder: 'Anything else the venue needs?',
+    chip: 'requests',
+    sampleAnswer: 'Could use a second radio for the smoking area.'
   }]
 
 };

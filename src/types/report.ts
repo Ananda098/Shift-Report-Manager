@@ -97,3 +97,22 @@ export interface StatementSection {
   title: string;
   statements: Statement[];
 }
+
+/** One phrase the mocked parser matched in a note, and where it landed. */
+export interface NoteMatch {
+  key: string;
+  sectionId: string;
+  statementId: string;
+}
+
+/** A single freeform note the manager has pushed into the report. */
+export interface NoteEntry {
+  id: string;
+  text: string;
+  time: string;
+  statementIds: string[];
+  /** Which phrases produced those statements — lets an edit re-match them. */
+  matches: NoteMatch[];
+  /** Incidents this note produced. Not retroactively removed on edit. */
+  incidentIds: string[];
+}

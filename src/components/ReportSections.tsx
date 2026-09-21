@@ -6,7 +6,7 @@ import {
   UsersIcon,
   TriangleAlertIcon,
   UserCheckIcon,
-  PackageIcon } from
+  WrenchIcon } from
 'lucide-react';
 import { ReviewIncident, Statement, StatementSection } from '../types/report';
 import { nightOrder } from '../utils/time';
@@ -35,9 +35,9 @@ type IconType = typeof ShieldAlertIcon;
 
 const SECTION_ICONS: Record<string, IconType> = {
   crowd: UsersIcon,
-  concerning: TriangleAlertIcon,
-  crew: UserCheckIcon,
-  needs: PackageIcon
+  safety: TriangleAlertIcon,
+  staff: UserCheckIcon,
+  supplies: WrenchIcon
 };
 
 function SectionCard({

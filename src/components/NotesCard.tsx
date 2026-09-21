@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { SparklesIcon, FileTextIcon, ChevronDownIcon } from 'lucide-react';
+import { SparklesIcon, PencilIcon } from 'lucide-react';
 import { GhostPrompt } from './GhostPrompt';
 import { RecordButton } from './RecordButton';
+import { NoteEntry } from '../types/report';
 import { getCaretCoordinates, measureTextWidth } from '../utils/caretCoordinates';
 
 const PLACEHOLDER =
@@ -24,6 +25,9 @@ const PAUSE_MS = 1750;
 const WORDS_PER_TICK = 3;
 const WORD_MS = 45;
 const HIGHLIGHT_MS = 1500;
+const MIN_HEIGHT = 78;
+const MAX_HEIGHT = 210;
+const VISIBLE_NOTES = 3;
 
 interface Ghost {
   text: string;
@@ -32,74 +36,34 @@ interface Ghost {
 }
 
 interface NotesCardProps {
-  value: string;
-  onChange: (value: string) => void;
+  draft: string;
+  onChangeDraft: (value: string) => void;
   onAddToReport: () => void;
-  /** True once the card has settled into its compact, post-push state. */
-  collapsed: boolean;
-  onExpand: () => void;
-  /** For the collapsed summary line — counts across the whole report, not just the last push. */
-  statementCount: number;
-  incidentCount: number;
+  notes: NoteEntry[];
+  onEditNote: (noteId: string) => void;
 }
 
-function CollapsedSummary({
-  onExpand,
-  statementCount,
-  incidentCount
-
-
-
-
-}: {onExpand: () => void;statementCount: number;incidentCount: number;}) {
-  const parts = [`${statementCount} statement${statementCount === 1 ? '' : 's'}`];
-  if (incidentCount > 0) {
-    parts.push(`${incidentCount} incident${incidentCount === 1 ? '' : 's'}`);
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={onExpand}
-      className="flex w-full items-center justify-between rounded-xl border border-line bg-card px-5 py-4 text-left outline-none transition-colors duration-150 ease-out hover:bg-raised focus-visible:ring-2 focus-visible:ring-teal">
-
-      <span className="flex items-center gap-2.5">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-raised text-muted">
-          <FileTextIcon size={15} strokeWidth={1.75} />
-        </span>
-        <span className="text-body text-txt">
-          Notes added <span className="text-faint">·</span>{' '}
-          <span className="text-muted">{parts.join(' · ')}</span>
-        </span>
-      </span>
-      <span className="flex items-center gap-1 text-meta text-muted">
-        View or add more
-        <ChevronDownIcon size={15} strokeWidth={2} />
-      </span>
-    </button>);
-
-}
-
-/** The freeform "write or record" card. Sits above Incidents; collapses to a
-    one-line summary once its contents have been pushed into the report. */
+/** The freeform "write or record" card. The input stays open and ready for
+    the next note before and after every push; each push adds an entry to
+    the list below instead of collapsing the card. */
 export function NotesCard({
-  value,
-  onChange,
+  draft,
+  onChangeDraft,
   onAddToReport,
-  collapsed,
-  onExpand,
-  statementCount,
-  incidentCount
+  notes,
+  onEditNote
 }: NotesCardProps) {
   const [ghost, setGhost] = useState<Ghost | null>(null);
   const [recording, setRecording] = useState(false);
   const [typing, setTyping] = useState(false);
   const [highlightStart, setHighlightStart] = useState<number | null>(null);
   const [highlightFading, setHighlightFading] = useState(false);
+  const [showAllNotes, setShowAllNotes] = useState(false);
 
   const promptIndex = useRef(0);
   const pauseTimer = useRef<number | undefined>(undefined);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const transcriptRef = useRef<HTMLParagraphElement>(null);
 
   const clearPause = useCallback(() => {
     if (pauseTimer.current) window.clearTimeout(pauseTimer.current);
@@ -131,14 +95,15 @@ export function NotesCard({
 
   useEffect(() => () => clearPause(), [clearPause]);
 
-  // Keep the editor sized to its content so the document flows from the top.
+  // Compact by default (~3 lines), grows with content up to ~8 lines, then
+  // scrolls internally instead of pushing the rest of the page down.
   useEffect(() => {
-    if (collapsed) return;
-    const el = textareaRef.current;
+    const el = typing || highlightStart !== null ? transcriptRef.current : textareaRef.current;
     if (!el) return;
     el.style.height = 'auto';
-    el.style.height = `${el.scrollHeight}px`;
-  }, [value, typing, highlightStart, collapsed]);
+    const next = Math.min(Math.max(el.scrollHeight, MIN_HEIGHT), MAX_HEIGHT);
+    el.style.height = `${next}px`;
+  }, [draft, typing, highlightStart]);
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     let next = e.target.value;
@@ -149,7 +114,7 @@ export function NotesCard({
       next = `${next.slice(0, lineStart)}• ${next.slice(caret)}`;
     }
     setGhost(null);
-    onChange(next);
+    onChangeDraft(next);
     schedulePrompt(next);
   };
 
@@ -162,17 +127,17 @@ export function NotesCard({
     if (e.key !== 'Enter' || e.shiftKey) return;
     const el = e.currentTarget;
     const caret = el.selectionStart;
-    const lineStart = value.lastIndexOf('\n', caret - 1) + 1;
-    const line = value.slice(lineStart, caret);
+    const lineStart = draft.lastIndexOf('\n', caret - 1) + 1;
+    const line = draft.slice(lineStart, caret);
     if (!line.startsWith('• ')) return;
     e.preventDefault();
     const next =
     line.trim() === '•' ?
-    `${value.slice(0, lineStart)}\n${value.slice(caret)}` :
-    `${value.slice(0, caret)}\n• ${value.slice(caret)}`;
+    `${draft.slice(0, lineStart)}\n${draft.slice(caret)}` :
+    `${draft.slice(0, caret)}\n• ${draft.slice(caret)}`;
     const nextCaret = line.trim() === '•' ? lineStart + 1 : caret + 3;
     setGhost(null);
-    onChange(next);
+    onChangeDraft(next);
     schedulePrompt(next);
     window.requestAnimationFrame(() => {
       el.setSelectionRange(nextCaret, nextCaret);
@@ -184,9 +149,9 @@ export function NotesCard({
     clearPause();
     setGhost(null);
 
-    const trimmed = value.replace(/\s+$/, '');
+    const trimmed = draft.replace(/\s+$/, '');
     const base = trimmed.length ? `${trimmed}\n\n` : '';
-    onChange(base);
+    onChangeDraft(base);
     setHighlightStart(base.length);
     setTyping(true);
 
@@ -194,7 +159,7 @@ export function NotesCard({
     let i = 0;
     const tick = () => {
       i = Math.min(i + WORDS_PER_TICK, words.length);
-      onChange(base + words.slice(0, i).join(' '));
+      onChangeDraft(base + words.slice(0, i).join(' '));
       if (i < words.length) {
         window.setTimeout(tick, WORD_MS);
         return;
@@ -211,31 +176,26 @@ export function NotesCard({
     window.setTimeout(tick, WORD_MS);
   };
 
-  if (collapsed) {
-    return (
-      <CollapsedSummary
-        onExpand={onExpand}
-        statementCount={statementCount}
-        incidentCount={incidentCount} />);
-
-  }
-
   const showTranscriptView = typing || highlightStart !== null;
-  const canPush = !typing && value.trim().length > 0;
+  const canPush = !typing && draft.trim().length > 0;
+  const visibleNotes = showAllNotes ? notes : notes.slice(0, VISIBLE_NOTES);
 
   return (
-    <div className="flex h-[460px] flex-col overflow-hidden rounded-xl border border-line bg-card">
-      <div className="scroll-slim flex-1 overflow-y-auto px-5 py-4">
+    <div className="rounded-xl border border-line bg-card">
+      <div className="px-5 py-4">
         {showTranscriptView ?
-        <p className="whitespace-pre-wrap break-words text-body text-txt">
-            {value.slice(0, highlightStart ?? 0)}
+        <p
+          ref={transcriptRef}
+          className="scroll-slim overflow-y-auto whitespace-pre-wrap break-words text-body text-txt">
+
+            {draft.slice(0, highlightStart ?? 0)}
             <span
             className={[
             'transition-colors duration-300 ease-out',
             highlightFading ? 'text-txt' : 'text-teal'].
             join(' ')}>
 
-              {value.slice(highlightStart ?? 0)}
+              {draft.slice(highlightStart ?? 0)}
             </span>
           </p> :
 
@@ -247,13 +207,13 @@ export function NotesCard({
             id="shift-notes"
             ref={textareaRef}
             rows={1}
-            value={value}
+            value={draft}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
             onBlur={clearPause}
             placeholder={PLACEHOLDER}
             spellCheck={false}
-            className="block w-full resize-none overflow-hidden bg-transparent text-body text-txt outline-none placeholder:text-faint" />
+            className="scroll-slim block w-full resize-none overflow-y-auto bg-transparent text-body text-txt outline-none placeholder:text-faint" />
 
             {ghost &&
           <GhostPrompt
@@ -288,6 +248,44 @@ export function NotesCard({
           onStop={handleStop} />
 
       </div>
+
+      {notes.length > 0 &&
+      <div className="border-t border-line px-3 py-2">
+          <ul className="space-y-0.5">
+            {visibleNotes.map((note) =>
+          <li
+            key={note.id}
+            className="group flex items-center justify-between gap-3 rounded-lg px-2 py-1.5 transition-colors duration-150 ease-out hover:bg-raised">
+
+                <div className="min-w-0 flex-1">
+                  <p className="text-meta text-txt">
+                    My note <span className="text-faint">·</span>{' '}
+                    <span className="text-muted">{note.time}</span>
+                  </p>
+                  <p className="truncate text-label text-faint">{note.text}</p>
+                </div>
+                <button
+              type="button"
+              onClick={() => onEditNote(note.id)}
+              aria-label="Edit note"
+              className="shrink-0 rounded-md p-1.5 text-faint opacity-0 outline-none transition-[opacity,color] duration-150 ease-out hover:text-txt focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-teal group-hover:opacity-100">
+
+                  <PencilIcon size={14} strokeWidth={2} />
+                </button>
+              </li>
+          )}
+          </ul>
+          {!showAllNotes && notes.length > VISIBLE_NOTES &&
+        <button
+          type="button"
+          onClick={() => setShowAllNotes(true)}
+          className="mt-1 rounded-md px-2 py-1 text-label text-muted outline-none transition-colors duration-150 ease-out hover:text-txt focus-visible:ring-2 focus-visible:ring-teal">
+
+              Show all ({notes.length})
+            </button>
+        }
+        </div>
+      }
     </div>);
 
 }

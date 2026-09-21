@@ -10,7 +10,7 @@ import { people } from './people';
 export const statementSections: StatementSection[] = [
 {
   id: 'crowd',
-  title: 'Crowd tonight',
+  title: 'Crowd',
   statements: [
   {
     id: 's-crowd-1',
@@ -49,8 +49,8 @@ export const statementSections: StatementSection[] = [
 
 },
 {
-  id: 'concerning',
-  title: 'Anything concerning?',
+  id: 'safety',
+  title: 'Safety concerns',
   statements: [
   {
     id: 's-concern-1',
@@ -88,13 +88,13 @@ export const statementSections: StatementSection[] = [
 
 },
 {
-  id: 'crew',
-  title: 'Crew performance',
+  id: 'staff',
+  title: 'Staff',
   statements: []
 },
 {
-  id: 'needs',
-  title: 'Anything we need?',
+  id: 'supplies',
+  title: 'Supplies and repairs',
   statements: [
   {
     id: 's-needs-1',
