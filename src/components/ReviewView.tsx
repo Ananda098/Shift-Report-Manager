@@ -4,6 +4,7 @@ import { ReviewIncident, Tier } from '../types/report';
 import { reviewHelp } from '../data/reviewHelp';
 import { applyHelpAction, sortForQueue, systemEntry } from '../utils/reviewActions';
 import { ReviewTopBar } from './ReviewTopBar';
+import { IncidentSwitcher } from './IncidentSwitcher';
 import { ReviewQueue } from './ReviewQueue';
 import { IncidentDetail } from './IncidentDetail';
 import { DecisionBar } from './DecisionBar';
@@ -171,6 +172,7 @@ export function ReviewView({
   return (
     <div className="flex h-full w-full flex-col bg-base font-sans text-txt">
       <ReviewTopBar saving={saving} onBack={onBack} />
+      <IncidentSwitcher incidents={incidents} currentId={current.id} onSelect={onSelect} />
 
       <div className="flex min-h-0 flex-1">
         <ReviewQueue incidents={incidents} currentId={current.id} onSelect={onSelect} />
