@@ -13,6 +13,12 @@ export interface ReviewHelpDef {
   type: InlineAIHelpType;
   question: string;
   options: ReviewHelpOption[];
+  /** The question this one is a follow-up to. The two are steps of a single
+      card rather than two cards, and Back returns to the one named here. */
+  stepOf?: string;
+  /** The detail row the chain fills in. Stepping back clears it again, so a
+      card that has been walked backwards leaves nothing behind. */
+  fills?: string;
 }
 
 export const reviewHelp: ReviewHelpDef[] = [
@@ -66,6 +72,8 @@ export const reviewHelp: ReviewHelpDef[] = [
   incidentId: 'i-9',
   anchorId: 'detail-parties',
   type: 'optional',
+  stepOf: 'help-watchlist',
+  fills: 'watchlist',
   question: 'How long should the flag last?',
   options: [
   { label: 'Rest of tonight', action: 'watchlist-tonight' },
@@ -89,6 +97,8 @@ export const reviewHelp: ReviewHelpDef[] = [
   incidentId: 'i-5',
   anchorId: 'review-details',
   type: 'optional',
+  stepOf: 'help-hazard',
+  fills: 'hazard',
   question: 'What was done about the spill?',
   options: [
   { label: 'Floor mopped immediately', action: 'hazard-mopped' },

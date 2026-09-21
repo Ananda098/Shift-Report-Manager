@@ -21,6 +21,7 @@ interface ReviewViewProps {
   onSelect: (id: string) => void;
   onUpdate: (id: string, updater: (incident: ReviewIncident) => ReviewIncident) => void;
   onResolveHelp: (helpId: string) => void;
+  onUnresolveHelp: (helpId: string) => void;
   onBack: () => void;
   onFinish: () => void;
 }
@@ -32,6 +33,7 @@ export function ReviewView({
   onSelect,
   onUpdate,
   onResolveHelp,
+  onUnresolveHelp,
   onBack,
   onFinish
 }: ReviewViewProps) {
@@ -141,28 +143,58 @@ export function ReviewView({
 
   const marginItems: MarginRailItem[] = [];
   if (help) {
+    // A follow-up is the second step of the question it hangs off, not a card
+    // of its own: the rail keeps one id for the chain, so answering swaps the
+    // question inside the card instead of replacing the card.
+    const previousId = help.stepOf;
+    const chainId = previousId ?? help.id;
+    const nextStep = reviewHelp.find((h) => h.stepOf === help.id);
+    const fills = help.fills;
+
     marginItems.push({
-      id: help.id,
+      id: chainId,
       anchorId: help.anchorId,
       element:
       <InlineAIHelp
         anchorId={help.anchorId}
         type={help.type}
+        stepKey={help.id}
         question={help.question}
         error={helpError === help.id}
         errorMessage="Answer this to confirm"
-        options={help.options.map((option) => ({
-          label: option.label,
-          onSelect: () => {
-            const result = applyHelpAction(current, option.action);
-            onUpdate(current.id, () => result.incident);
-            onResolveHelp(help.id);
-            result.skipIds?.forEach(onResolveHelp);
-            setHelpError(null);
-            touch();
-            flash(result.highlightId);
+        options={help.options.map((option) => {
+          const result = applyHelpAction(current, option.action);
+          return {
+            label: option.label,
+            // Anything that leaves the follow-up standing moves the card on to
+            // it; an answer that skips it finishes the card outright.
+            advances: Boolean(nextStep && !result.skipIds?.includes(nextStep.id)),
+            onSelect: () => {
+              onUpdate(current.id, () => result.incident);
+              onResolveHelp(help.id);
+              result.skipIds?.forEach(onResolveHelp);
+              setHelpError(null);
+              touch();
+              flash(result.highlightId);
+            }
+          };
+        })}
+        onBack={
+        previousId ?
+        () => {
+          // Back undoes the answer behind this step, placeholder row and all,
+          // so the card returns to exactly the state it was asked in.
+          if (fills) {
+            onUpdate(current.id, (incident) => ({
+              ...incident,
+              details: incident.details.filter((row) => row.id !== fills)
+            }));
           }
-        }))}
+          setHelpError(null);
+          onUnresolveHelp(previousId);
+        } :
+        undefined
+        }
         onDismiss={() => onResolveHelp(help.id)} />
 
 

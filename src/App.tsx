@@ -24,7 +24,10 @@ export function App() {
         onUpdateIncident={updateIncident}
         onAddIncident={(incident) => setIncidents((prev) => [...prev, incident])}
         resolvedHelp={resolvedHelp}
-        onResolveHelp={(helpId) => setResolvedHelp((prev) => [...prev, helpId])} />
+        onResolveHelp={(helpId) => setResolvedHelp((prev) => [...prev, helpId])}
+        onUnresolveHelp={(helpId) =>
+        setResolvedHelp((prev) => prev.filter((id) => id !== helpId))
+        } />
 
       <Toaster />
     </>);

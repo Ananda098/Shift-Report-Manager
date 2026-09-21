@@ -1,23 +1,36 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { SparklesIcon } from 'lucide-react';
 
 export type InlineAIHelpType = 'optional' | 'mandatory';
 
+/** The quiet Back / Dismiss pair along the bottom of the card. */
+const FOOT_BUTTON =
+'rounded-md px-1.5 py-0.5 text-label text-faint outline-none transition-colors duration-150 ease-out ' +
+'hover:text-muted focus-visible:ring-2 focus-visible:ring-teal';
+
 export interface InlineAIHelpOption {
   label: string;
   onSelect: () => void;
+  /** Moves the card on to its next question instead of answering it outright,
+      so the contents swap in place rather than the card fading out. */
+  advances?: boolean;
 }
 
 interface InlineAIHelpProps {
   anchorId: string;
   type?: InlineAIHelpType;
+  /** Identifies the question showing. Changing it crossfades the card's
+      contents; the card itself stays where it is. */
+  stepKey?: string;
   question: string;
   options?: InlineAIHelpOption[];
   input?: {placeholder: string;onSubmit: (value: string) => void;};
   /** Marks the card as blocking an action it was asked to answer. */
   error?: boolean;
   errorMessage?: string;
+  /** Returns to the previous question, on a card that has one behind it. */
+  onBack?: () => void;
   onDismiss: () => void;
   /** Custom body. Receives `resolve`, which fades the card out before running the action. */
   children?: (resolve: (action: () => void) => void) => React.ReactNode;
@@ -26,11 +39,13 @@ interface InlineAIHelpProps {
 export function InlineAIHelp({
   anchorId,
   type = 'optional',
+  stepKey,
   question,
   options,
   input,
   error = false,
   errorMessage,
+  onBack,
   onDismiss,
   children
 }: InlineAIHelpProps) {
@@ -70,22 +85,32 @@ export function InlineAIHelp({
         {mandatory ? 'Required' : 'Suggestion'}
       </motion.p>
 
-      <p className="text-body text-txt">{question}</p>
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={stepKey ?? question}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.13, ease: 'easeOut' }}>
 
-      {options && options.length > 0 &&
-      <div className="mt-3 flex flex-wrap gap-1.5">
-          {options.map((option) =>
-        <button
-          key={option.label}
-          type="button"
-          onClick={() => resolve(option.onSelect)}
-          className="rounded-lg border border-line px-2.5 py-2.5 text-meta text-muted outline-none transition-colors duration-150 ease-out hover:border-teal hover:text-teal focus-visible:ring-2 focus-visible:ring-teal dt:py-1.5">
-          
-              {option.label}
-            </button>
-        )}
-        </div>
-      }
+          <p className="text-body text-txt">{question}</p>
+
+          {options && options.length > 0 &&
+          <div className="mt-3 flex flex-wrap gap-1.5">
+              {options.map((option) =>
+            <button
+              key={option.label}
+              type="button"
+              onClick={() => option.advances ? option.onSelect() : resolve(option.onSelect)}
+              className="rounded-lg border border-line px-2.5 py-2.5 text-meta text-muted outline-none transition-colors duration-150 ease-out hover:border-teal hover:text-teal focus-visible:ring-2 focus-visible:ring-teal dt:py-1.5">
+
+                  {option.label}
+                </button>
+            )}
+            </div>
+          }
+        </motion.div>
+      </AnimatePresence>
 
       {input &&
       <form
@@ -114,15 +139,20 @@ export function InlineAIHelp({
         </p>
       }
 
-      {!mandatory &&
-      <div className="mt-3 flex justify-end">
-          <button
-          type="button"
-          onClick={() => resolve(onDismiss)}
-          className="rounded-md px-1.5 py-0.5 text-label text-faint outline-none transition-colors duration-150 ease-out hover:text-muted focus-visible:ring-2 focus-visible:ring-teal">
-          
-            Dismiss
-          </button>
+      {(onBack || !mandatory) &&
+      <div className="mt-3 flex items-center justify-between gap-2">
+          {onBack ?
+        <button type="button" onClick={onBack} className={FOOT_BUTTON}>
+              Back
+            </button> :
+
+        <span />
+        }
+          {!mandatory &&
+        <button type="button" onClick={() => resolve(onDismiss)} className={FOOT_BUTTON}>
+              Dismiss
+            </button>
+        }
         </div>
       }
     </motion.aside>);

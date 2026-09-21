@@ -59,6 +59,8 @@ interface AppShellProps {
   onAddIncident: (incident: ReviewIncident) => void;
   resolvedHelp: string[];
   onResolveHelp: (helpId: string) => void;
+  /** Puts an answered question back on the card, for a follow-up's Back. */
+  onUnresolveHelp: (helpId: string) => void;
 }
 
 /** Placeholder "now" used as the source time for anything the manager files directly. */
@@ -87,7 +89,8 @@ export function AppShell({
   onUpdateIncident,
   onAddIncident,
   resolvedHelp,
-  onResolveHelp
+  onResolveHelp,
+  onUnresolveHelp
 }: AppShellProps) {
   const [view, setView] = useState<'report' | 'review'>('report');
   const [notesDraft, setNotesDraft] = useState('');
@@ -605,6 +608,7 @@ export function AppShell({
         onSelect={setCurrentReviewId}
         onUpdate={onUpdateIncident}
         onResolveHelp={onResolveHelp}
+        onUnresolveHelp={onUnresolveHelp}
         onBack={() => setView('report')}
         onFinish={() => {
           setView('report');
