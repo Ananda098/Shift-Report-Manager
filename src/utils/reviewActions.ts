@@ -22,6 +22,8 @@ export interface HelpActionResult {
   incident: ReviewIncident;
   /** DOM-independent id of the row or tile that should flash teal. */
   highlightId: string | null;
+  /** Other help card ids to resolve alongside this one — used to skip a chained follow-up when the answer doesn't need it. */
+  skipIds?: string[];
 }
 
 /** Applies an InlineAIHelp answer to an incident. Pure — returns a new incident. */
@@ -75,6 +77,76 @@ export function applyHelpAction(incident: ReviewIncident, action: string): HelpA
             })
           },
           highlightId: 'medical'
+        };
+      }
+    case 'watchlist-yes':
+      return {
+        incident: {
+          ...incident,
+          details: withRow(incident.details, {
+            id: 'watchlist',
+            label: 'Watch list',
+            values: ['Flagged — duration pending']
+          })
+        },
+        highlightId: 'watchlist'
+      };
+    case 'watchlist-no':
+      return {
+        incident,
+        highlightId: null,
+        skipIds: ['help-watchlist-duration']
+      };
+    case 'watchlist-tonight':
+    case 'watchlist-month':
+    case 'watchlist-indefinite':{
+        const value =
+        action === 'watchlist-tonight' ?
+        'Flagged — rest of tonight' :
+        action === 'watchlist-month' ?
+        'Flagged — this month' :
+        'Flagged — indefinite, repeat offender';
+        return {
+          incident: {
+            ...incident,
+            details: withRow(incident.details, { id: 'watchlist', label: 'Watch list', values: [value] })
+          },
+          highlightId: 'watchlist'
+        };
+      }
+    case 'hazard-yes':
+      return {
+        incident: {
+          ...incident,
+          details: withRow(incident.details, {
+            id: 'hazard',
+            label: 'Hazard follow-up',
+            values: ['Logged — action pending']
+          })
+        },
+        highlightId: 'hazard'
+      };
+    case 'hazard-no':
+      return {
+        incident,
+        highlightId: null,
+        skipIds: ['help-hazard-action']
+      };
+    case 'hazard-mopped':
+    case 'hazard-sign':
+    case 'hazard-cordoned':{
+        const value =
+        action === 'hazard-mopped' ?
+        'Floor mopped immediately' :
+        action === 'hazard-sign' ?
+        'Warning sign placed' :
+        'Area cordoned off';
+        return {
+          incident: {
+            ...incident,
+            details: withRow(incident.details, { id: 'hazard', label: 'Hazard follow-up', values: [value] })
+          },
+          highlightId: 'hazard'
         };
       }
     case 'request-clip':{

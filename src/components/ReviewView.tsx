@@ -149,6 +149,7 @@ export function ReviewView({
             const result = applyHelpAction(current, option.action);
             onUpdate(current.id, () => result.incident);
             onResolveHelp(help.id);
+            result.skipIds?.forEach(onResolveHelp);
             setHelpError(null);
             touch();
             flash(result.highlightId);

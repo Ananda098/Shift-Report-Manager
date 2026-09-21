@@ -49,4 +49,50 @@ export const reviewHelp: ReviewHelpDef[] = [
   { label: 'Request clip', action: 'request-clip' },
   { label: 'Not needed', action: 'none' }]
 
+},
+{
+  id: 'help-watchlist',
+  incidentId: 'i-9',
+  anchorId: 'detail-parties',
+  type: 'optional',
+  question: 'Should this guest go on the watch list?',
+  options: [
+  { label: 'Yes, add to watch list', action: 'watchlist-yes' },
+  { label: 'No, one-off', action: 'watchlist-no' }]
+
+},
+{
+  id: 'help-watchlist-duration',
+  incidentId: 'i-9',
+  anchorId: 'detail-parties',
+  type: 'optional',
+  question: 'How long should the flag last?',
+  options: [
+  { label: 'Rest of tonight', action: 'watchlist-tonight' },
+  { label: 'This month', action: 'watchlist-month' },
+  { label: 'Indefinite, repeat offender', action: 'watchlist-indefinite' }]
+
+},
+{
+  id: 'help-hazard',
+  incidentId: 'i-5',
+  anchorId: 'review-details',
+  type: 'optional',
+  question: 'Guest declined first aid — log a hazard follow-up?',
+  options: [
+  { label: 'Yes, log follow-up', action: 'hazard-yes' },
+  { label: 'No further action', action: 'hazard-no' }]
+
+},
+{
+  id: 'help-hazard-action',
+  incidentId: 'i-5',
+  anchorId: 'review-details',
+  type: 'optional',
+  question: 'What was done about the spill?',
+  options: [
+  { label: 'Floor mopped immediately', action: 'hazard-mopped' },
+  { label: 'Warning sign placed', action: 'hazard-sign' },
+  { label: 'Area cordoned off', action: 'hazard-cordoned' }]
+
 }];
