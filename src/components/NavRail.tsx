@@ -19,9 +19,9 @@ export function NavRail() {
   return (
     <nav
       aria-label="Main"
-      className="flex w-14 shrink-0 flex-col items-center gap-1 border-r border-line bg-card py-4">
-      
-      <div className="mb-4 flex h-8 w-8 items-center justify-center rounded-md bg-teal-fill text-label font-semibold text-teal">
+      className="flex h-14 w-full shrink-0 items-center justify-around border-t border-line bg-card px-2 sm:h-auto sm:w-14 sm:flex-col sm:items-center sm:justify-start sm:gap-1 sm:border-r sm:border-t-0 sm:px-0 sm:py-4">
+
+      <div className="hidden h-8 w-8 items-center justify-center rounded-md bg-teal-fill text-label font-semibold text-teal sm:mb-4 sm:flex">
         N
       </div>
       {items.map(({ id, label, Icon }) => {
@@ -39,13 +39,13 @@ export function NavRail() {
               'bg-raised text-teal' :
               'text-faint hover:bg-raised hover:text-muted'].
               join(' ')}>
-              
+
               <Icon size={18} strokeWidth={1.75} />
             </button>
             <span
               role="tooltip"
-              className="pointer-events-none absolute left-12 top-1/2 z-20 -translate-y-1/2 translate-x-1 whitespace-nowrap rounded-md border border-line bg-raised px-2 py-1 text-label text-txt opacity-0 shadow-lg transition-[opacity,transform] duration-150 ease-out group-hover:translate-x-0 group-hover:opacity-100">
-              
+              className="pointer-events-none absolute left-12 top-1/2 z-20 hidden -translate-y-1/2 translate-x-1 whitespace-nowrap rounded-md border border-line bg-raised px-2 py-1 text-label text-txt opacity-0 shadow-lg transition-[opacity,transform] duration-150 ease-out group-hover:translate-x-0 group-hover:opacity-100 sm:block">
+
               {label}
             </span>
           </div>);

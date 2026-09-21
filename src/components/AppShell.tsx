@@ -273,7 +273,7 @@ export function AppShell({
   }
 
   return (
-    <div className="relative flex h-full w-full overflow-hidden bg-base font-sans text-txt">
+    <div className="relative flex h-full w-full flex-col-reverse overflow-hidden bg-base font-sans text-txt sm:flex-row">
       <NavRail />
 
       <main className="scroll-slim flex-1 overflow-y-auto">
