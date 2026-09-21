@@ -11,7 +11,7 @@ import {
 import { ReviewIncident, Statement, StatementSection } from '../types/report';
 import { nightOrder } from '../utils/time';
 import { dayOverview } from '../data/statements';
-import { IncidentRow } from './IncidentRow';
+import { IncidentRow, INCIDENT_GRID } from './IncidentRow';
 import { StatementRow } from './StatementRow';
 import { StatementComposer } from './StatementComposer';
 import { EmptySection } from './EmptySection';
@@ -152,16 +152,26 @@ export function SummaryTab({
         }>
         
         {reviewed.length > 0 &&
-        <ul className="-mx-2">
-            {reviewed.map((incident) =>
-          <IncidentRow
-            key={incident.id}
-            incident={incident}
-            highlight={highlightIncidentId === incident.id}
-            onOpen={onOpenIncident} />
+        <>
+            <div
+            className={`-mx-2 grid ${INCIDENT_GRID} gap-3.5 border-b border-line px-3 pb-2 text-label uppercase tracking-wide text-faint`}>
 
-          )}
-          </ul>
+              <span>Tier</span>
+              <span>Incident</span>
+              <span className="text-right">Time</span>
+              <span>Status</span>
+            </div>
+            <ul className="-mx-2 mt-1">
+              {reviewed.map((incident) =>
+            <IncidentRow
+              key={incident.id}
+              incident={incident}
+              highlight={highlightIncidentId === incident.id}
+              onOpen={onOpenIncident} />
+
+            )}
+            </ul>
+          </>
         }
 
         {pendingCount > 0 &&
