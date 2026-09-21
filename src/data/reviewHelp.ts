@@ -21,7 +21,7 @@ export const reviewHelp: ReviewHelpDef[] = [
   incidentId: 'i-6',
   anchorId: 'detail-parties',
   type: 'mandatory',
-  question: 'A tier 3 incident needs a witness on record. Who else was there?',
+  question: 'A serious incident needs a witness on record. Who else was there?',
   options: [
   { label: 'Zosia was there', action: 'witness-zosia' },
   { label: 'No one else saw it', action: 'witness-none' }]

@@ -9,6 +9,7 @@ import { IncidentDetail } from './IncidentDetail';
 import { DecisionBar } from './DecisionBar';
 import { DismissDialog } from './DismissDialog';
 import { MarginRail, MarginRailItem } from './MarginRail';
+import { TIER_LABEL } from './TierBadge';
 import { InlineAIHelp } from './InlineAIHelp';
 import { SourcePanel } from './SourcePanel';
 
@@ -114,7 +115,7 @@ export function ReviewView({
       tier,
       history: [
       ...incident.history,
-      systemEntry(`You changed tier ${incident.tier} → ${tier}`)]
+      systemEntry(`You changed tier ${TIER_LABEL[incident.tier]} → ${TIER_LABEL[tier]}`)]
 
     }));
   };

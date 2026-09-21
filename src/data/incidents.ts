@@ -256,7 +256,7 @@ export const incidents: ReviewIncident[] = [
     id: 'h-6-3',
     kind: 'system',
     time: '01:45',
-    label: 'AI escalated to T3 — police attended'
+    label: 'AI escalated to Serious — police attended'
   }]
 
 },
