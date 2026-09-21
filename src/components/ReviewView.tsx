@@ -178,8 +178,8 @@ export function ReviewView({
         <ReviewQueue incidents={incidents} currentId={current.id} onSelect={onSelect} />
 
         <div className="scroll-slim flex-1 overflow-y-auto">
-          <div className="mx-auto flex w-full max-w-[1080px] flex-col 2xl:flex-row">
-            <div className="flex w-full shrink-0 flex-col px-8 pt-8 2xl:w-[720px]">
+          <div className="mx-auto flex w-full max-w-[1080px] flex-col dt:flex-row">
+            <div className="flex w-full shrink-0 flex-col px-8 pt-8 dt:w-[720px]">
               <IncidentDetail
                 incident={current}
                 highlightId={highlightId}
@@ -214,10 +214,10 @@ export function ReviewView({
             </div>
 
             <div
-              className="w-full shrink-0 px-8 pb-8 2xl:w-[340px] 2xl:px-0 2xl:pt-8"
+              className="w-full shrink-0 px-8 pb-8 dt:w-[340px] dt:px-0 dt:pt-8"
               aria-label="Margin notes">
 
-              <MarginRail items={marginItems} breakpoint={1536} />
+              <MarginRail items={marginItems} breakpoint={680} />
             </div>
           </div>
         </div>

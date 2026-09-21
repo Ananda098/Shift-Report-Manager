@@ -15,7 +15,7 @@ export function IncidentSwitcher({ incidents, currentId, onSelect }: IncidentSwi
   const done = incidents.filter((i) => i.status !== 'pending');
 
   return (
-    <div className="border-b border-line bg-base px-4 py-2.5 lg:hidden">
+    <div className="border-b border-line bg-base px-4 py-2.5 dt:hidden">
       <label htmlFor="incident-switcher" className="sr-only">
         Jump to incident
       </label>

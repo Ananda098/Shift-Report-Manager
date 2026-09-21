@@ -37,7 +37,7 @@ function useIsWide(breakpointPx: number): boolean {
  * Below `breakpoint`, there's no room beside the content for this, so cards
  * fall back to a plain stacked list.
  */
-export function MarginRail({ items, gap = 8, breakpoint = 1280 }: MarginRailProps) {
+export function MarginRail({ items, gap = 8, breakpoint = 680 }: MarginRailProps) {
   const wide = useIsWide(breakpoint);
   const railRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});

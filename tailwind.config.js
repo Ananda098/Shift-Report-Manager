@@ -5,6 +5,11 @@ export default {
 ],
   theme: {
     extend: {
+      screens: {
+        // Single cutoff for the whole app: below this is the mobile layout,
+        // this width and up is the regular (desktop) layout, unconditionally.
+        dt: '680px',
+      },
       colors: {
         base: '#131216',
         card: '#1B1A20',

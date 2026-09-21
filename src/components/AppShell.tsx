@@ -274,12 +274,12 @@ export function AppShell({
   }
 
   return (
-    <div className="relative flex h-full w-full flex-col-reverse overflow-hidden bg-base font-sans text-txt sm:flex-row">
+    <div className="relative flex h-full w-full flex-col-reverse overflow-hidden bg-base font-sans text-txt dt:flex-row">
       <NavRail />
 
       <main className="scroll-slim flex-1 overflow-y-auto">
-        <div className="mx-auto flex w-full max-w-[1100px] flex-col xl:flex-row">
-          <div className="w-full shrink-0 px-10 py-9 xl:w-[760px]">
+        <div className="mx-auto flex w-full max-w-[1100px] flex-col dt:flex-row">
+          <div className="w-full shrink-0 px-10 py-9 dt:w-[760px]">
             <ReportHeader hasUnreviewed={!allReviewed} demoted={demotePagePrimaries} />
 
             {!allReviewed &&
@@ -345,10 +345,10 @@ export function AppShell({
           </div>
 
           <div
-            className="w-full shrink-0 px-10 pb-9 xl:w-[340px] xl:px-0 xl:py-9"
+            className="w-full shrink-0 px-10 pb-9 dt:w-[340px] dt:px-0 dt:py-9"
             aria-label="Margin notes">
 
-            <MarginRail items={marginItems} />
+            <MarginRail items={marginItems} breakpoint={680} />
           </div>
         </div>
       </main>
