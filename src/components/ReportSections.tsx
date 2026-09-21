@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   PlusIcon,
+  PencilIcon,
   ShieldAlertIcon,
   UsersIcon,
   TriangleAlertIcon,
@@ -78,14 +79,23 @@ function SectionCard({
 
 }
 
-function AddInfoAction({ label, onClick }: {label: string;onClick: () => void;}) {
+function AddInfoAction({
+  label,
+  onClick,
+  editing = false
+
+
+
+
+}: {label: string;onClick: () => void;editing?: boolean;}) {
+  const Icon = editing ? PencilIcon : PlusIcon;
   return (
     <button
       type="button"
       onClick={onClick}
       className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-meta text-muted outline-none transition-colors duration-150 ease-out hover:bg-raised hover:text-txt focus-visible:ring-2 focus-visible:ring-teal">
 
-      <PlusIcon size={14} strokeWidth={2} />
+      <Icon size={14} strokeWidth={2} />
       {label}
     </button>);
 
@@ -169,7 +179,11 @@ export function ReportSections({
             title={section.title}
             quiet={isEmpty}
             action={
-            <AddInfoAction label="Add information" onClick={() => onAddInfo(section.id)} />
+            <AddInfoAction
+              label={isEmpty ? 'Add information' : 'Edit information'}
+              editing={!isEmpty}
+              onClick={() => onAddInfo(section.id)} />
+
             }>
 
             {isEmpty ?

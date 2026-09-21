@@ -316,12 +316,14 @@ export function AppShell({
             </div>
 
             {!allReviewed &&
-            <ReviewModule
-              total={incidents.length}
-              reviewedCount={reviewedCount}
-              demoted={demotePagePrimaries}
-              onStartReview={() => openReview()} />
+            <div className="dt:hidden">
+                <ReviewModule
+                total={incidents.length}
+                reviewedCount={reviewedCount}
+                demoted={demotePagePrimaries}
+                onStartReview={() => openReview()} />
 
+              </div>
             }
 
             <ReportSections
@@ -345,6 +347,16 @@ export function AppShell({
             className="w-full shrink-0 px-10 pb-9 dt:w-[340px] dt:px-0 dt:py-9"
             aria-label="Margin notes">
 
+            {!allReviewed &&
+            <div className="hidden dt:block">
+                <ReviewModule
+                total={incidents.length}
+                reviewedCount={reviewedCount}
+                demoted={demotePagePrimaries}
+                onStartReview={() => openReview()} />
+
+              </div>
+            }
             <MarginRail items={marginItems} breakpoint={680} />
           </div>
         </div>

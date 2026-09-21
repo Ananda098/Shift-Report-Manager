@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { XIcon, MicIcon } from 'lucide-react';
-import { Evidence } from '../types/report';
 import { SectionQuestion } from '../utils/mockAi';
 import { RecordButton } from './RecordButton';
 import { InlineEditable } from './InlineEditable';
 import { HighlightText } from './HighlightText';
-import { EvidenceSection } from './EvidenceSection';
 import { DismissDialog } from './DismissDialog';
 
 interface AddInfoPanelProps {
@@ -32,7 +30,7 @@ function Row({
 }: {label: string;tag?: string;children: React.ReactNode;}) {
   return (
     <div className="flex gap-3 border-t border-line py-2.5">
-      <span className="w-[76px] shrink-0 pt-1 text-label uppercase tracking-wide text-faint">
+      <span className="w-[112px] shrink-0 pt-1 text-label uppercase tracking-wide text-faint">
         {label}
       </span>
       <div className="min-w-0 flex-1">
@@ -56,11 +54,10 @@ export function AddInfoPanel({
   const [answers, setAnswers] = useState<string[]>(initialAnswers);
   const [recording, setRecording] = useState(false);
   const [recordedChips, setRecordedChips] = useState<string[]>([]);
-  const [evidence, setEvidence] = useState<Evidence[]>([]);
   const [discardOpen, setDiscardOpen] = useState(false);
 
   const hasData = answers.some((a) => a.trim().length > 0);
-  const isDirty = evidence.length > 0 || answers.some((a, i) => a !== initialAnswers[i]);
+  const isDirty = answers.some((a, i) => a !== initialAnswers[i]);
 
   const setAnswer = (index: number, value: string) => {
     setAnswers((prev) => prev.map((a, i) => i === index ? value : a));
@@ -92,7 +89,7 @@ export function AddInfoPanel({
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: 24, opacity: 0 }}
       transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
-      className="absolute inset-y-0 right-0 z-30 flex w-full max-w-[340px] flex-col border-l border-line bg-card">
+      className="absolute inset-y-0 right-0 z-30 flex w-full max-w-[440px] flex-col border-l border-line bg-card">
 
       <div className="scroll-slim flex-1 overflow-y-auto px-5 py-5">
         <div className="mb-3 flex items-start justify-between gap-3">
@@ -128,16 +125,6 @@ export function AddInfoPanel({
               </InlineEditable>
             </Row>
           )}
-        </div>
-
-        <div className="border-t border-line pt-1">
-          <EvidenceSection
-            evidence={evidence}
-            highlightId={null}
-            onAdd={(name) =>
-            setEvidence((prev) => [...prev, { id: `e-new-${Date.now()}`, kind: 'photo', name }])
-            } />
-
         </div>
       </div>
 
