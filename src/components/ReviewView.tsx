@@ -178,48 +178,52 @@ export function ReviewView({
       <div className="flex min-h-0 flex-1">
         <ReviewQueue incidents={incidents} currentId={current.id} onSelect={onSelect} />
 
-        <div className="scroll-slim flex-1 overflow-y-auto">
-          <div className="mx-auto flex w-full max-w-[1080px] flex-col dt:flex-row">
-            <div className="flex w-full shrink-0 flex-col px-8 pt-8 dt:w-[720px]">
-              <IncidentDetail
-                incident={current}
-                highlightId={highlightId}
-                openSourceRowId={openSourceRowId}
-                onChangeTier={handleTier}
-                onChangeSummary={(summary) => update((incident) => ({ ...incident, summary }))}
-                onChangeDetail={(rowId, index, value) =>
-                update((incident) => ({
-                  ...incident,
-                  details: incident.details.map((row) =>
-                  row.id === rowId ?
-                  { ...row, values: row.values.map((v, i) => i === index ? value : v) } :
-                  row
-                  )
-                }))
-                }
-                onOpenSource={(rowId) =>
-                setOpenSourceRowId((v) => v === rowId ? null : rowId)
-                }
-                onAddEvidence={handleAddEvidence} />
-              
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="scroll-slim flex-1 overflow-y-auto">
+            <div className="mx-auto flex w-full max-w-[1080px] flex-col dt:flex-row">
+              <div className="flex w-full shrink-0 flex-col px-8 pb-8 pt-8 dt:w-[720px]">
+                <IncidentDetail
+                  incident={current}
+                  highlightId={highlightId}
+                  openSourceRowId={openSourceRowId}
+                  onChangeTier={handleTier}
+                  onChangeSummary={(summary) => update((incident) => ({ ...incident, summary }))}
+                  onChangeDetail={(rowId, index, value) =>
+                  update((incident) => ({
+                    ...incident,
+                    details: incident.details.map((row) =>
+                    row.id === rowId ?
+                    { ...row, values: row.values.map((v, i) => i === index ? value : v) } :
+                    row
+                    )
+                  }))
+                  }
+                  onOpenSource={(rowId) =>
+                  setOpenSourceRowId((v) => v === rowId ? null : rowId)
+                  }
+                  onAddEvidence={handleAddEvidence} />
 
-              <div className="h-16" />
+              </div>
 
+              <div
+                className="w-full shrink-0 px-8 pb-8 dt:w-[340px] dt:px-0 dt:pt-8"
+                aria-label="Margin notes">
+
+                <MarginRail items={marginItems} breakpoint={680} />
+              </div>
+            </div>
+          </div>
+
+          <div className="mx-auto flex w-full max-w-[1080px] shrink-0 dt:flex-row">
+            <div className="w-full shrink-0 px-8 dt:w-[720px]">
               <DecisionBar
                 status={current.status}
                 pendingCount={pending.length}
                 onDismissRequest={() => setDismissOpen(true)}
                 onRestore={handleRestore}
                 onConfirm={handleConfirm} />
-              
             </div>
-
-            <div
-              className="w-full shrink-0 px-8 pb-8 dt:w-[340px] dt:px-0 dt:pt-8"
-              aria-label="Margin notes">
-
-              <MarginRail items={marginItems} breakpoint={680} />
-            </div>
+            <div className="hidden shrink-0 dt:block dt:w-[340px]" />
           </div>
         </div>
       </div>

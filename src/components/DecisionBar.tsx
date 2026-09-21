@@ -25,7 +25,7 @@ export function DecisionBar({
   'Next';
 
   return (
-    <div className="sticky bottom-0 -mx-8 mt-auto flex h-[72px] shrink-0 items-center justify-between border-t border-line bg-base px-8">
+    <div className="flex h-[72px] w-full shrink-0 items-center justify-between border-t border-line bg-base">
       {status === 'dismissed' ?
       <button
         type="button"
