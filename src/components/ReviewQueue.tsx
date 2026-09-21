@@ -65,8 +65,20 @@ export function ReviewQueue({ incidents, currentId, onSelect }: ReviewQueueProps
       className="scroll-slim hidden w-[280px] shrink-0 flex-col overflow-y-auto border-r border-line bg-base dt:flex">
 
       <div className="px-5 pb-4 pt-6">
-        <h2 className="text-section font-semibold text-txt">Let’s go through it together</h2>
-        <p className="mt-1 text-meta text-muted">{pending.length} left tonight</p>
+        <p className="text-meta text-muted">{pending.length} left tonight</p>
+        <div
+          role="progressbar"
+          aria-label="Review progress"
+          aria-valuemin={0}
+          aria-valuemax={incidents.length}
+          aria-valuenow={done.length}
+          className="mt-2.5 h-1 w-full overflow-hidden rounded-full bg-raised">
+
+          <div
+            className="h-full rounded-full bg-teal transition-[width] duration-300 ease-out"
+            style={{ width: `${incidents.length ? done.length / incidents.length * 100 : 0}%` }} />
+
+        </div>
       </div>
 
       <ul className="space-y-1.5 px-3">
