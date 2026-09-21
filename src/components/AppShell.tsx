@@ -405,7 +405,7 @@ export function AppShell({
   };
 
   const marginItems: MarginRailItem[] = [];
-  if (!openIncident && !addOpen && !addInfoSection && openStatement) {
+  if (!openIncident && !addOpen && !addInfoSection && !editingNote && openStatement) {
     marginItems.push({
       id: `source-${openStatement.id}`,
       anchorId: `statement-${openStatement.id}`,
