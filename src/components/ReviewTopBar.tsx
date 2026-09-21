@@ -11,10 +11,8 @@ export function ReviewTopBar({ saving, onBack }: ReviewTopBarProps) {
     <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-line bg-base px-4 dt:px-5">
       <p className="truncate text-section text-txt">
         Incidents
-        <span className="hidden dt:inline">
-          {' '}
-          <span className="text-faint">·</span>{' '}
-          <span className="font-semibold text-muted">Sat 20/09 - Sun 21/09</span>
+        <span className="ml-2 hidden rounded-md bg-raised px-2 py-0.5 align-middle text-[11px] text-faint dt:inline-flex">
+          Sat 20/09 - Sun 21/09
         </span>
       </p>
 
