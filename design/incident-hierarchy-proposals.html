@@ -1,0 +1,798 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Incident Hierarchy Proposals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+
+  /* ============================================================
+     TOKENS — lifted exactly from the screenshot / app palette.
+     Only grayscale + the one amber tier accent. Nothing new added.
+     ============================================================ */
+  :root{
+    --base:#131216;
+    --card:#1B1A20;
+    --raised:#23212A;
+    --line:#302E38;
+    --txt:#E9E6EC;
+    --muted:#A5A1AE;
+    --faint:#6E6A78;
+    --tier-serious:#E0A33E;
+  }
+
+  *{ box-sizing:border-box; }
+
+  html,body{
+    margin:0;
+    background:var(--base);
+    color:var(--txt);
+    font-family:'Inter',ui-sans-serif,system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  body{ padding:56px 24px 120px; }
+
+  .page{ max-width:1900px; margin:0 auto; }
+
+  /* ---------- intro ---------- */
+  .intro{ max-width:68ch; margin-bottom:56px; }
+  .intro .eyebrow{
+    font-size:12px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--faint); font-weight:600; margin-bottom:10px;
+  }
+  .intro h1{ font-size:30px; font-weight:600; letter-spacing:-0.01em; margin:0 0 12px; }
+  .intro p{ font-size:15px; line-height:1.65; color:var(--muted); margin:0 0 8px; }
+  .legend{
+    display:flex; gap:18px; margin-top:18px; flex-wrap:wrap;
+    font-size:13px; color:var(--faint);
+  }
+  .legend b{ color:var(--txt); font-weight:600; }
+
+  /* ---------- proposal block scaffold ---------- */
+  .proposal-block{ margin-bottom:72px; }
+  .block-head{ display:flex; align-items:baseline; gap:12px; margin-bottom:6px; flex-wrap:wrap; }
+  .block-head .num{ font-size:13px; color:var(--faint); font-variant-numeric:tabular-nums; }
+  .block-head h2{ font-size:20px; font-weight:600; margin:0; }
+  .block-goal{ font-size:13.5px; color:var(--muted); margin:0 0 22px; max-width:68ch; line-height:1.55; }
+
+  .variant-row{
+    display:flex; gap:24px; align-items:flex-start;
+    overflow-x:auto; padding-bottom:14px;
+    scroll-snap-type:x proximity;
+  }
+  .variant{
+    width:560px; max-width:calc(100vw - 48px); flex:0 0 auto;
+    scroll-snap-align:start;
+  }
+  .variant-tag{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size:12px; font-weight:600; letter-spacing:.03em;
+    color:var(--faint); text-transform:uppercase; margin-bottom:10px;
+  }
+  .variant-tag .letter{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:20px; height:20px; border-radius:5px; background:var(--raised);
+    color:var(--txt); font-size:11px; font-weight:700; text-transform:none;
+  }
+
+  .mock-frame{
+    background:var(--base); border:1px solid var(--line); border-radius:14px;
+    padding:22px 22px 24px; min-height:320px;
+  }
+
+  .rationale{
+    margin:12px 2px 0; font-size:13px; line-height:1.6; color:var(--muted);
+  }
+  .rationale b{ color:var(--txt); font-weight:600; }
+  .rationale .glance{
+    display:block; margin-top:6px; font-size:12px; color:var(--faint);
+  }
+
+  /* ============================================================
+     SHARED MOCK-UI PRIMITIVES (used across variants + recommended)
+     ============================================================ */
+
+  /* tier chip — identical everywhere, per "do not change tier styling" */
+  .chip{
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--raised); border-radius:7px; padding:5px 9px 5px 8px;
+    font-size:13px; font-weight:500; color:var(--txt); white-space:nowrap;
+  }
+  .chip .dot{ width:7px; height:7px; border-radius:999px; background:var(--tier-serious); flex-shrink:0; }
+  .chip .chev{ color:var(--faint); margin-left:1px; }
+
+  .mini-dot{ width:6px; height:6px; border-radius:999px; background:var(--tier-serious); flex-shrink:0; }
+
+  h1.title-lg{ font-size:28px; font-weight:600; letter-spacing:-0.01em; margin:0; }
+  h1.title-md{ font-size:24px; font-weight:600; letter-spacing:-0.01em; margin:0; }
+
+  .section-label{
+    font-size:18px; font-weight:600; color:var(--txt); margin:0 0 10px;
+  }
+  .section-label.small{
+    font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--faint); margin:0 0 8px;
+  }
+
+  .body-copy{ font-size:16px; line-height:1.6; color:var(--txt); margin:0; max-width:68ch; }
+  .body-copy.airy{ line-height:1.75; }
+
+  /* key/value rows */
+  .kv-row{ display:flex; gap:20px; padding:9px 0; align-items:baseline; }
+  .kv-label{
+    width:88px; flex-shrink:0; font-size:12px; letter-spacing:.05em;
+    text-transform:uppercase; color:var(--faint);
+  }
+  .kv-value{ font-size:16px; color:var(--txt); line-height:1.55; }
+  .kv-value.tabular{ font-variant-numeric:tabular-nums; }
+  .kv-value .party-line{ display:block; }
+  .kv-value .party-line + .party-line{ margin-top:4px; }
+
+  .tag-role{
+    display:inline-flex; align-items:center; margin-left:8px;
+    font-size:11px; color:var(--muted); background:var(--raised);
+    border-radius:5px; padding:1px 6px; font-weight:500;
+  }
+
+  .empty-slot{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:10px; font-size:14px; color:var(--faint); font-style:normal;
+  }
+  .empty-slot .add-link{
+    font-size:12px; color:var(--muted); border:1px dashed var(--line);
+    border-radius:6px; padding:3px 8px; white-space:nowrap;
+  }
+
+  /* stat pair (Details variant C) */
+  .stat-pair{ display:flex; gap:32px; margin-bottom:18px; }
+  .stat{ }
+  .stat .kv-label{ width:auto; margin-bottom:4px; }
+  .stat .stat-val{ font-size:20px; font-weight:600; color:var(--txt); }
+  .stat .stat-val.tabular{ font-variant-numeric:tabular-nums; }
+
+  /* evidence tiles */
+  .tile-row{ display:flex; gap:10px; flex-wrap:wrap; }
+  .tile-group{ margin-bottom:16px; }
+  .tile-group:last-child{ margin-bottom:0; }
+  .tile{
+    width:92px; height:122px; border-radius:9px; background:
+      linear-gradient(155deg, var(--card) 0%, #232128 55%, #17161b 100%);
+    border:1px solid var(--line); position:relative; overflow:hidden; flex-shrink:0;
+  }
+  .tile .badge{
+    position:absolute; top:6px; right:6px; background:rgba(0,0,0,.6);
+    color:var(--txt); font-size:10.5px; padding:1px 5px; border-radius:4px;
+    font-variant-numeric:tabular-nums;
+  }
+  .tile .play{
+    position:absolute; left:50%; top:44%; transform:translate(-50%,-50%);
+    width:22px; height:22px; border-radius:999px; background:rgba(0,0,0,.5);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .tile .cap{
+    position:absolute; left:0; right:0; bottom:0; padding:5px 6px 6px;
+    background:linear-gradient(to top, rgba(0,0,0,.82), transparent);
+    font-size:10.5px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .tile-caption-below{
+    font-size:11px; color:var(--muted); margin-top:6px; width:92px;
+    line-height:1.4; word-break:break-word;
+  }
+  .tile.add{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:4px; border-style:dashed; border-color:var(--line); color:var(--faint); background:transparent;
+  }
+  .tile.add span{ font-size:11px; }
+  .tile.add.small{ width:64px; height:64px; border-radius:8px; }
+  .add-inline-link{
+    font-size:12.5px; color:var(--muted); display:inline-block; margin-top:10px;
+  }
+
+  /* history */
+  .h-item{ display:flex; gap:14px; margin-bottom:22px; position:relative; }
+  .h-item:last-child{ margin-bottom:0; }
+  .h-rail{ width:8px; flex-shrink:0; display:flex; justify-content:center; padding-top:6px; }
+  .h-rail .pt{ width:6px; height:6px; border-radius:999px; background:var(--faint); }
+  .h-body{ flex:1; min-width:0; }
+  .h-meta{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px; }
+  .h-meta-left{ font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .h-who{ display:flex; align-items:center; gap:7px; font-size:13px; color:var(--muted); flex-shrink:0; }
+  .avatar{
+    width:22px; height:22px; border-radius:999px; background:var(--raised);
+    display:inline-flex; align-items:center; justify-content:center;
+    font-size:10px; font-weight:600; color:var(--muted); flex-shrink:0;
+  }
+  .h-report-text{ font-size:15px; line-height:1.55; color:var(--txt); margin:0; }
+  .h-toggle{
+    background:none; border:none; padding:0; margin-top:6px; cursor:pointer;
+    font-size:12.5px; color:var(--muted); font-family:inherit;
+  }
+  .h-toggle:hover{ color:var(--txt); }
+  .h-system{ font-size:13px; color:var(--faint); }
+  .h-system .h-rail .pt{ background:var(--line); }
+
+  .lane-label{
+    font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--faint); margin:0 0 12px;
+  }
+  .lane-divider{ height:1px; background:var(--line); margin:20px 0; }
+
+  /* provenance (What happened, variant B) */
+  .provenance{
+    margin-top:10px; display:inline-flex; align-items:center; gap:7px;
+    font-size:12px; color:var(--faint); position:relative; cursor:default;
+  }
+  .provenance .stack{ display:flex; }
+  .provenance .avatar{ width:18px; height:18px; font-size:9px; margin-left:-6px; border:2px solid var(--base); }
+  .provenance .avatar:first-child{ margin-left:0; }
+  .prov-tip{
+    position:absolute; left:0; bottom:calc(100% + 8px); z-index:5;
+    background:var(--raised); border:1px solid var(--line); border-radius:8px;
+    padding:9px 11px; font-size:12px; color:var(--muted); white-space:nowrap;
+    opacity:0; pointer-events:none; transform:translateY(3px);
+    transition:opacity .12s ease-out, transform .12s ease-out;
+  }
+  .provenance:hover .prov-tip{ opacity:1; transform:translateY(0); }
+
+  /* summary-as-object (What happened, variant C) */
+  .summary-card{
+    background:var(--card); border:1px solid var(--line); border-radius:10px;
+    padding:16px 18px 18px;
+  }
+  .summary-card .section-label.small{ margin-bottom:10px; }
+  .summary-source{ margin-top:12px; font-size:12px; color:var(--faint); }
+
+  /* ---------- recommended composition ---------- */
+  .recommended{
+    margin-top:8px; padding-top:56px; border-top:1px solid var(--line);
+  }
+  .recommended .block-head h2{ font-size:22px; }
+  .rec-frame{
+    width:720px; max-width:100%; margin:28px auto 0;
+    background:var(--base); border:1px solid var(--line); border-radius:16px;
+    padding:32px 36px 36px;
+  }
+  .pick-notes{
+    max-width:720px; margin:22px auto 0; display:grid; gap:10px;
+  }
+  .pick-note{
+    display:flex; gap:12px; font-size:13px; color:var(--muted); line-height:1.5;
+  }
+  .pick-note .pick-src{
+    flex-shrink:0; width:78px; font-weight:600; color:var(--txt);
+  }
+  .rec-divider{ height:1px; background:var(--line); margin:26px 0; }
+
+  @media (max-width:640px){
+    body{ padding:40px 16px 100px; }
+    .rec-frame{ padding:24px 18px 26px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="intro">
+    <div class="eyebrow">Design exploration — not production code</div>
+    <h1>Incident page hierarchy</h1>
+    <p>Same colours, tier styling, dark theme, content and copy as the current page. Only hierarchy, layout, typography, spacing, grouping and states are being explored — nothing here changes what the page says, only how fast a tired manager can read it at 3am.</p>
+    <p>Reading order the page should support: <b style="color:var(--txt)">how serious &amp; is it done → what happened → the key facts → proof → who said what.</b></p>
+    <div class="legend">
+      <span><b>A</b> — current layout, recreated faithfully</span>
+      <span><b>B / C</b> — proposals, structurally different from each other</span>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SECTION 1 — HEADER (tier, status, title)
+       ============================================================ -->
+  <section class="proposal-block">
+    <div class="block-head"><span class="num">01</span><h2>Header</h2></div>
+    <p class="block-goal">Answers the very first question — how serious, and is it done — before anything else is read.</p>
+
+    <div class="variant-row">
+
+      <!-- Variant A: current, faithful recreation -->
+      <div class="variant">
+        <div class="variant-tag"><span class="letter">A</span>Current</div>
+        <div class="mock-frame">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+            <span class="chip"><span class="dot"></span>Serious
+              <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </span>
+            <span style="font-size:14px;color:var(--muted);">Confirmed</span>
+          </div>
+          <h1 class="title-lg">Violence / altercation</h1>
+        </div>
+        <p class="rationale">Chip and status sit at equal weight beside each other, and "Confirmed" is plain grey text easy to miss on a fast pass.
+          <span class="glance">Glance order: chip → title → status (status often skipped)</span>
+        </p>
+      </div>
+
+      <!-- Variant B: severity + status merged into one glanceable row -->
+      <div class="variant">
+        <div class="variant-tag"><span class="letter">B</span>Status row</div>
+        <div class="mock-frame">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <span class="chip"><span class="dot"></span>Serious
+              <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:500;color:var(--txt);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              Confirmed
+            </span>
+          </div>
+          <h1 class="title-lg">Violence / altercation</h1>
+        </div>
+        <p class="rationale"><b>Position + weight, not colour.</b> Severity and status share one row and now read together as "handled or not" in a single glance; status gets a checkmark and full-brightness text instead of receding grey.
+          <span class="glance">Glance order: status row (as one unit) → title</span>
+        </p>
+      </div>
+
+      <!-- Variant C: chip/status demoted to a tiny meta line, title stands alone -->
+      <div class="variant">
+        <div class="variant-tag"><span class="letter">C</span>Meta line</div>
+        <div class="mock-frame">
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:12px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);font-weight:600;">
+            <span class="mini-dot"></span>SERIOUS <span style="color:var(--line);">·</span> CONFIRMED
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </div>
+          <h1 class="title-lg">Violence / altercation</h1>
+        </div>
+        <p class="rationale"><b>Clear levels.</b> Tier + status are demoted to a single small caption, so there's no ambiguity that the title is the one big thing on the bar — closest to "page title &gt; ... &gt; meta."
+          <span class="glance">Glance order: title (unrivalled) → meta caption</span>
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       SECTION 2 — WHAT HAPPENED (the AI summary)
+       ============================================================ -->
+  <section class="proposal-block">
+    <div class="block-head"><span class="num">02</span><h2>What happened</h2></div>
+    <p class="block-goal">This is the most-read paragraph on the page — it should be the most readable text here, with light, honest provenance.</p>
+
+    <div class="variant-row">
+
+      <!-- Variant A: current, faithful recreation -->
+      <div class="variant">
+        <div class="variant-tag"><span class="letter">A</span>Current</div>
+        <div class="mock-frame">
+          <div class="section-label">What happened</div>
+          <p class="body-copy">Two guests exchanged punches by the back bar after a verbal argument. The door team separated them within seconds and walked both out through the side exit.</p>
+        </div>
+        <p class="rationale">Heading is the same size and weight as "Details" / "Evidence" / "History" — it organises but also visually competes. No hint this text is AI-composed from two reports.</p>
+      </div>
+
+      <!-- Variant B: label recedes, paragraph is the lead, provenance on hover -->
+      <div class="variant">
+        <div class="variant-tag"><span class="letter">B</span>Readable + provenance</div>
+        <div class="mock-frame">
+          <div class="section-label small">What happened</div>
+          <p class="body-copy airy">Two guests exchanged punches by the back bar after a verbal argument. The door team separated them within seconds and walked both out through the side exit.</p>
+          <div class="provenance">
+            <span class="stack">
+              <span class="avatar">TR</span><span class="avatar">ZN</span>
+            </span>
+            Summarised from 2 reports
+            <div class="prov-tip">Tomek · Security, 01:34<br>Zosia · Bar, 01:40</div>
+          </div>
+        </div>
+        <p class="rationale"><b>Most-read = most readable.</b> The label shrinks to an eyebrow so the paragraph itself — wider leading, ~68ch — becomes the visual lead. Provenance sits below, quiet until hovered.</p>
+      </div>
+
+      <!-- Variant C: summary as its own object, isolated from the plain sections below -->
+      <div class="variant">
+        <div class="variant-tag"><span class="letter">C</span>Isolated object</div>
+        <div class="mock-frame">
+          <div class="summary-card">
+            <div class="section-label small">Summary</div>
+            <p class="body-copy">Two guests exchanged punches by the back bar after a verbal argument. The door team separated them within seconds and walked both out through the side exit.</p>
+            <div class="summary-source">— from Tomek's and Zosia's reports, 01:34–01:40</div>
+          </div>
+        </div>
+        <p class="rationale"><b>Isolation, not typography.</b> A one-tone-lighter panel (existing card colour, no new hue) marks this as the one paragraph to read first, structurally separate from the plain key/value and log sections that follow.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       SECTION 3 — DETAILS (key/value facts)
+       ============================================================ -->
+  <section class="proposal-block">
+    <div class="block-head"><span class="num">03</span><h2>Details</h2></div>
+    <p class="block-goal">The legally load-bearing facts. Nothing here should be truncated, buried, or silently missing.</p>
+
+    <div class="variant-row">
+
+      <!-- Variant A: current, faithful recreation -->
+      <div class="variant">
+        <div class="variant-tag"><span class="letter">A</span>Current</div>
+        <div class="mock-frame">
+          <div class="section-label">Details</div>
+          <div class="kv-row"><div class="kv-label">Time</div><div class="kv-value">01:30</div></div>
+          <div class="kv-row"><div class="kv-label">Location</div><div class="kv-value">Main floor, near the back bar</div></div>
+          <div class="kv-row">
+            <div class="kv-label">Parties</div>
+            <div class="kv-value">
+              <span class="party-line">Unnamed male guest, 30s, black jacket</span>
+              <span class="party-line">Unnamed male guest, 20s, witness</span>
+              <span class="party-line">Zosia, bar staff — witness</span>
+            </div>
+          </div>
+        </div>
+        <p class="rationale">Witness status is a plain text suffix, easy to skim past. Time isn't set in tabular numerals. No sign of what's missing (e.g. medical, weapon).</p>
+      </div>
+
+      <!-- Variant B: role tags separated from names, tabular time, inviting empty slot -->
+      <div class="variant">
+        <div class="variant-tag"><span class="letter">B</span>Tags + empty slot</div>
+        <div class="mock-frame">
+          <div class="section-label">Details</div>
+          <div class="kv-row"><div class="kv-label">Time</div><div class="kv-value tabular">01:30</div></div>
+          <div class="kv-row"><div class="kv-label">Location</div><div class="kv-value">Main floor, near the back bar</div></div>
+          <div class="kv-row">
+            <div class="kv-label">Parties</div>
+            <div class="kv-value">
+              <span class="party-line">Unnamed male guest, 30s, black jacket</span>
+              <span class="party-line">Unnamed male guest, 20s <span class="tag-role">witness</span></span>
+              <span class="party-line">Zosia, bar staff <span class="tag-role">witness</span></span>
+            </div>
+          </div>
+          <div class="kv-row">
+            <div class="kv-label">Medical</div>
+            <div class="kv-value empty-slot">Not recorded <span class="add-link">+ Add</span></div>
+          </div>
+        </div>
+        <p class="rationale"><b>Facts visible where facts live.</b> "Witness" becomes its own tag, not a buried suffix — legally relevant status is scannable at a glance. A missing field is an inviting prompt, not silence.</p>
+      </div>
+
+      <!-- Variant C: quick facts strip above, parties list separated below -->
+      <div class="variant">
+        <div class="variant-tag"><span class="letter">C</span>Facts strip</div>
+        <div class="mock-frame">
+          <div class="section-label">Details</div>
+          <div class="stat-pair">
+            <div class="stat"><div class="kv-label">Time</div><div class="stat-val tabular">01:30</div></div>
+            <div class="stat"><div class="kv-label">Location</div><div class="stat-val" style="font-size:15px;">Main floor, near the back bar</div></div>
+          </div>
+          <div class="section-label small" style="margin-top:4px;">Parties</div>
+          <div class="kv-value">
+            <span class="party-line">Unnamed male guest, 30s, black jacket</span>
+            <span class="party-line">Unnamed male guest, 20s <span class="tag-role">witness</span></span>
+            <span class="party-line">Zosia, bar staff <span class="tag-role">witness</span></span>
+          </div>
+        </div>
+        <p class="rationale"><b>Scan-priority tiers.</b> Time + location — the two facts you must clock instantly — get their own tight strip above the parties list, instead of one uniform label column for everything.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       SECTION 4 — EVIDENCE
+       ============================================================ -->
+  <section class="proposal-block">
+    <div class="block-head"><span class="num">04</span><h2>Evidence</h2></div>
+    <p class="block-goal">Proof. Filenames must stay legible; adding evidence is secondary and shouldn't compete with what's already attached.</p>
+
+    <div class="variant-row">
+
+      <!-- Variant A: current, faithful recreation -->
+      <div class="variant">
+        <div class="variant-tag"><span class="letter">A</span>Current</div>
+        <div class="mock-frame">
+          <div class="section-label">Evidence</div>
+          <div class="tile-row">
+            <div class="tile"><span class="badge">2:14</span><span class="play"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21"></polygon></svg></span><span class="cap">CCTV_hall...</span></div>
+            <div class="tile"><span class="badge">0:58</span><span class="play"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21"></polygon></svg></span><span class="cap">CCTV_cloa...</span></div>
+            <div class="tile"><span class="cap">photo_01.jpg</span></div>
+            <div class="tile add"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg><span>Add</span></div>
+          </div>
+        </div>
+        <p class="rationale">Filenames are truncated inside the tile caption — "CCTV_hall..." hides exactly the detail (the timestamp) that might matter. The Add tile is the same size as real evidence.</p>
+      </div>
+
+      <!-- Variant B: full filenames below tiles, quiet Add -->
+      <div class="variant">
+        <div class="variant-tag"><span class="letter">B</span>Legible + quiet add</div>
+        <div class="mock-frame">
+          <div class="section-label">Evidence</div>
+          <div class="tile-row">
+            <div>
+              <div class="tile"><span class="badge">2:14</span><span class="play"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21"></polygon></svg></span></div>
+              <div class="tile-caption-below">CCTV_hall_0130.mp4</div>
+            </div>
+            <div>
+              <div class="tile"><span class="badge">0:58</span><span class="play"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21"></polygon></svg></span></div>
+              <div class="tile-caption-below">CCTV_cloakroom_0129.mp4</div>
+            </div>
+            <div>
+              <div class="tile"></div>
+              <div class="tile-caption-below">photo_01.jpg</div>
+            </div>
+          </div>
+          <a class="add-inline-link" href="#">+ Add evidence</a>
+        </div>
+        <p class="rationale"><b>Readable labels, quiet actions.</b> Full filenames move to an untruncated caption below each tile. Add becomes a small text link, clearly secondary to the proof tiles themselves.</p>
+      </div>
+
+      <!-- Variant C: grouped by kind -->
+      <div class="variant">
+        <div class="variant-tag"><span class="letter">C</span>Grouped by kind</div>
+        <div class="mock-frame">
+          <div class="section-label">Evidence</div>
+          <div class="tile-group">
+            <div class="section-label small">Video · 2</div>
+            <div class="tile-row">
+              <div><div class="tile"><span class="badge">2:14</span><span class="play"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21"></polygon></svg></span></div><div class="tile-caption-below">CCTV_hall_0130.mp4</div></div>
+              <div><div class="tile"><span class="badge">0:58</span><span class="play"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21"></polygon></svg></span></div><div class="tile-caption-below">CCTV_cloakroom_0129.mp4</div></div>
+            </div>
+          </div>
+          <div class="tile-group">
+            <div class="section-label small">Photo · 1</div>
+            <div class="tile-row">
+              <div><div class="tile"></div><div class="tile-caption-below">photo_01.jpg</div></div>
+              <div class="tile add small" style="margin-top:0;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></div>
+            </div>
+          </div>
+        </div>
+        <p class="rationale"><b>Proximity groups by kind.</b> Video and photo evidence carry different evidentiary weight, so they get their own labelled groups — the same small-label language as Details, kept consistent across the page.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       SECTION 5 — HISTORY (reports vs. system events)
+       ============================================================ -->
+  <section class="proposal-block">
+    <div class="block-head"><span class="num">05</span><h2>History</h2></div>
+    <p class="block-goal">Who said what, in their own words — currently mixed in with system/audit events that carry a different kind of weight.</p>
+
+    <div class="variant-row">
+
+      <!-- Variant A: current, faithful recreation -->
+      <div class="variant">
+        <div class="variant-tag"><span class="letter">A</span>Current</div>
+        <div class="mock-frame">
+          <div class="section-label">History</div>
+
+          <div class="h-item">
+            <div class="h-rail"><span class="pt"></span></div>
+            <div class="h-body">
+              <div class="h-meta"><span class="h-meta-left">01:34 · Main floor, near the back bar</span>
+                <span class="h-who"><span class="avatar">TR</span>Tomek · Security</span></div>
+              <p class="h-report-text" data-short="Two of them went at it by the back bar, the one in the black jacket swung first. It started over a spilled drink from what the bar staff told me afterwards. We had the…" data-full="Two of them went at it by the back bar, the one in the black jacket swung first. It started over a spilled drink from what the bar staff told me afterwards. We had them apart in about ten seconds and walked both out the side door. No blood on either of them and neither wanted anything done about it. Police were already on the street and had a word with them outside.">Two of them went at it by the back bar, the one in the black jacket swung first. It started over a spilled drink from what the bar staff told me afterwards. We had the…</p>
+              <button class="h-toggle js-toggle" type="button">Show full report</button>
+            </div>
+          </div>
+
+          <div class="h-item">
+            <div class="h-rail"><span class="pt"></span></div>
+            <div class="h-body">
+              <div class="h-meta"><span class="h-meta-left">01:40 · Main floor, near the back bar</span>
+                <span class="h-who"><span class="avatar">ZN</span>Zosia · Bar</span></div>
+              <p class="h-report-text" data-short="It kicked off at my end of the bar right after a drink went over. I saw the whole thing from the service side, maybe two metres away. The one in the black jacket threw…" data-full="It kicked off at my end of the bar right after a drink went over. I saw the whole thing from the service side, maybe two metres away. The one in the black jacket threw the first punch, no question about it. The other only swung back once before the door team got there.">It kicked off at my end of the bar right after a drink went over. I saw the whole thing from the service side, maybe two metres away. The one in the black jacket threw…</p>
+              <button class="h-toggle js-toggle" type="button">Show full report</button>
+            </div>
+          </div>
+
+          <div class="h-item h-system">
+            <div class="h-rail"><span class="pt"></span></div>
+            <div class="h-body"><span class="h-meta-left">01:45 · AI escalated to Serious — police attended</span></div>
+          </div>
+          <div class="h-item h-system">
+            <div class="h-rail"><span class="pt"></span></div>
+            <div class="h-body"><span class="h-meta-left">03:14 · You confirmed</span></div>
+          </div>
+        </div>
+        <p class="rationale">Human statements and system/audit events share one visual channel — differentiated only by whether a paragraph happens to follow.</p>
+      </div>
+
+      <!-- Variant B: two explicit lanes -->
+      <div class="variant">
+        <div class="variant-tag"><span class="letter">B</span>Two lanes</div>
+        <div class="mock-frame">
+          <div class="section-label">History</div>
+          <div class="lane-label">Reports · 2</div>
+
+          <div class="h-item">
+            <div class="h-rail"><span class="pt"></span></div>
+            <div class="h-body">
+              <div class="h-meta"><span class="h-meta-left">01:34 · Main floor, near the back bar</span>
+                <span class="h-who"><span class="avatar">TR</span>Tomek · Security</span></div>
+              <p class="h-report-text" data-short="Two of them went at it by the back bar, the one in the black jacket swung first. It started over a spilled drink from what the bar staff told me afterwards. We had the…" data-full="Two of them went at it by the back bar, the one in the black jacket swung first. It started over a spilled drink from what the bar staff told me afterwards. We had them apart in about ten seconds and walked both out the side door. No blood on either of them and neither wanted anything done about it. Police were already on the street and had a word with them outside.">Two of them went at it by the back bar, the one in the black jacket swung first. It started over a spilled drink from what the bar staff told me afterwards. We had the…</p>
+              <button class="h-toggle js-toggle" type="button">Show full report</button>
+            </div>
+          </div>
+
+          <div class="h-item">
+            <div class="h-rail"><span class="pt"></span></div>
+            <div class="h-body">
+              <div class="h-meta"><span class="h-meta-left">01:40 · Main floor, near the back bar</span>
+                <span class="h-who"><span class="avatar">ZN</span>Zosia · Bar</span></div>
+              <p class="h-report-text" data-short="It kicked off at my end of the bar right after a drink went over. I saw the whole thing from the service side, maybe two metres away. The one in the black jacket threw…" data-full="It kicked off at my end of the bar right after a drink went over. I saw the whole thing from the service side, maybe two metres away. The one in the black jacket threw the first punch, no question about it. The other only swung back once before the door team got there.">It kicked off at my end of the bar right after a drink went over. I saw the whole thing from the service side, maybe two metres away. The one in the black jacket threw…</p>
+              <button class="h-toggle js-toggle" type="button">Show full report</button>
+            </div>
+          </div>
+
+          <div class="lane-divider"></div>
+          <div class="lane-label">System log · 2</div>
+          <div style="font-size:13px;color:var(--faint);line-height:2.1;">
+            <div class="tabular">01:45 · AI escalated to Serious — police attended</div>
+            <div class="tabular">03:14 · You confirmed</div>
+          </div>
+        </div>
+        <p class="rationale"><b>Separate kinds of information.</b> Testimony gets the primary channel, full weight; the audit trail recedes into its own quieter list below — matching their different evidentiary roles.</p>
+      </div>
+
+      <!-- Variant C: single chronological list, typographically differentiated -->
+      <div class="variant">
+        <div class="variant-tag"><span class="letter">C</span>Chronological, differentiated</div>
+        <div class="mock-frame">
+          <div class="section-label">History</div>
+
+          <div class="h-item">
+            <div class="h-rail"><span class="pt" style="background:var(--txt);"></span></div>
+            <div class="h-body">
+              <div class="h-meta"><span class="h-meta-left">01:34 · Main floor, near the back bar</span>
+                <span class="h-who"><span class="avatar">TR</span>Tomek · Security</span></div>
+              <p class="h-report-text" data-short="Two of them went at it by the back bar, the one in the black jacket swung first. It started over a spilled drink from what the bar staff told me afterwards. We had the…" data-full="Two of them went at it by the back bar, the one in the black jacket swung first. It started over a spilled drink from what the bar staff told me afterwards. We had them apart in about ten seconds and walked both out the side door. No blood on either of them and neither wanted anything done about it. Police were already on the street and had a word with them outside.">Two of them went at it by the back bar, the one in the black jacket swung first. It started over a spilled drink from what the bar staff told me afterwards. We had the…</p>
+              <button class="h-toggle js-toggle" type="button">Show full report</button>
+            </div>
+          </div>
+
+          <div class="h-item">
+            <div class="h-rail"><span class="pt" style="background:var(--txt);"></span></div>
+            <div class="h-body">
+              <div class="h-meta"><span class="h-meta-left">01:40 · Main floor, near the back bar</span>
+                <span class="h-who"><span class="avatar">ZN</span>Zosia · Bar</span></div>
+              <p class="h-report-text" data-short="It kicked off at my end of the bar right after a drink went over. I saw the whole thing from the service side, maybe two metres away. The one in the black jacket threw…" data-full="It kicked off at my end of the bar right after a drink went over. I saw the whole thing from the service side, maybe two metres away. The one in the black jacket threw the first punch, no question about it. The other only swung back once before the door team got there.">It kicked off at my end of the bar right after a drink went over. I saw the whole thing from the service side, maybe two metres away. The one in the black jacket threw…</p>
+              <button class="h-toggle js-toggle" type="button">Show full report</button>
+            </div>
+          </div>
+
+          <div class="h-item h-system">
+            <div class="h-rail"><span class="pt" style="border:1px solid var(--faint);background:transparent;"></span></div>
+            <div class="h-body" style="display:flex;justify-content:space-between;">
+              <span class="h-meta-left">01:45 · AI escalated to Serious — police attended</span>
+              <span style="font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);">system</span>
+            </div>
+          </div>
+          <div class="h-item h-system">
+            <div class="h-rail"><span class="pt" style="border:1px solid var(--faint);background:transparent;"></span></div>
+            <div class="h-body" style="display:flex;justify-content:space-between;">
+              <span class="h-meta-left">03:14 · You confirmed</span>
+              <span style="font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);">system</span>
+            </div>
+          </div>
+        </div>
+        <p class="rationale"><b>Order preserved, kind still legible.</b> One strict timeline (useful when sequence itself matters), but a filled vs. hollow marker plus a small "system" tag tell the two kinds apart at a glance.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       RECOMMENDED COMPOSITION
+       ============================================================ -->
+  <section class="recommended">
+    <div class="block-head"><h2>Recommended composition</h2></div>
+    <p class="block-goal">Best variant per section, assembled as one page.</p>
+
+    <div class="rec-frame">
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+        <span class="chip"><span class="dot"></span>Serious
+          <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </span>
+        <span style="display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:500;color:var(--txt);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          Confirmed
+        </span>
+      </div>
+      <h1 class="title-lg" style="margin-bottom:26px;">Violence / altercation</h1>
+
+      <div class="section-label small">What happened</div>
+      <p class="body-copy airy">Two guests exchanged punches by the back bar after a verbal argument. The door team separated them within seconds and walked both out through the side exit.</p>
+      <div class="provenance">
+        <span class="stack"><span class="avatar">TR</span><span class="avatar">ZN</span></span>
+        Summarised from 2 reports
+        <div class="prov-tip">Tomek · Security, 01:34<br>Zosia · Bar, 01:40</div>
+      </div>
+
+      <div class="rec-divider"></div>
+
+      <div class="section-label">Details</div>
+      <div class="kv-row"><div class="kv-label">Time</div><div class="kv-value tabular">01:30</div></div>
+      <div class="kv-row"><div class="kv-label">Location</div><div class="kv-value">Main floor, near the back bar</div></div>
+      <div class="kv-row">
+        <div class="kv-label">Parties</div>
+        <div class="kv-value">
+          <span class="party-line">Unnamed male guest, 30s, black jacket</span>
+          <span class="party-line">Unnamed male guest, 20s <span class="tag-role">witness</span></span>
+          <span class="party-line">Zosia, bar staff <span class="tag-role">witness</span></span>
+        </div>
+      </div>
+      <div class="kv-row">
+        <div class="kv-label">Medical</div>
+        <div class="kv-value empty-slot">Not recorded <span class="add-link">+ Add</span></div>
+      </div>
+
+      <div class="rec-divider"></div>
+
+      <div class="section-label">Evidence</div>
+      <div class="tile-row">
+        <div><div class="tile"><span class="badge">2:14</span><span class="play"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21"></polygon></svg></span></div><div class="tile-caption-below">CCTV_hall_0130.mp4</div></div>
+        <div><div class="tile"><span class="badge">0:58</span><span class="play"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21"></polygon></svg></span></div><div class="tile-caption-below">CCTV_cloakroom_0129.mp4</div></div>
+        <div><div class="tile"></div><div class="tile-caption-below">photo_01.jpg</div></div>
+      </div>
+      <a class="add-inline-link" href="#">+ Add evidence</a>
+
+      <div class="rec-divider"></div>
+
+      <div class="section-label">History</div>
+      <div class="lane-label">Reports · 2</div>
+
+      <div class="h-item">
+        <div class="h-rail"><span class="pt"></span></div>
+        <div class="h-body">
+          <div class="h-meta"><span class="h-meta-left">01:34 · Main floor, near the back bar</span>
+            <span class="h-who"><span class="avatar">TR</span>Tomek · Security</span></div>
+          <p class="h-report-text" data-short="Two of them went at it by the back bar, the one in the black jacket swung first. It started over a spilled drink from what the bar staff told me afterwards. We had the…" data-full="Two of them went at it by the back bar, the one in the black jacket swung first. It started over a spilled drink from what the bar staff told me afterwards. We had them apart in about ten seconds and walked both out the side door. No blood on either of them and neither wanted anything done about it. Police were already on the street and had a word with them outside.">Two of them went at it by the back bar, the one in the black jacket swung first. It started over a spilled drink from what the bar staff told me afterwards. We had the…</p>
+          <button class="h-toggle js-toggle" type="button">Show full report</button>
+        </div>
+      </div>
+
+      <div class="h-item">
+        <div class="h-rail"><span class="pt"></span></div>
+        <div class="h-body">
+          <div class="h-meta"><span class="h-meta-left">01:40 · Main floor, near the back bar</span>
+            <span class="h-who"><span class="avatar">ZN</span>Zosia · Bar</span></div>
+          <p class="h-report-text" data-short="It kicked off at my end of the bar right after a drink went over. I saw the whole thing from the service side, maybe two metres away. The one in the black jacket threw…" data-full="It kicked off at my end of the bar right after a drink went over. I saw the whole thing from the service side, maybe two metres away. The one in the black jacket threw the first punch, no question about it. The other only swung back once before the door team got there.">It kicked off at my end of the bar right after a drink went over. I saw the whole thing from the service side, maybe two metres away. The one in the black jacket threw…</p>
+          <button class="h-toggle js-toggle" type="button">Show full report</button>
+        </div>
+      </div>
+
+      <div class="lane-divider"></div>
+      <div class="lane-label">System log · 2</div>
+      <div style="font-size:13px;color:var(--faint);line-height:2.1;">
+        <div class="tabular">01:45 · AI escalated to Serious — police attended</div>
+        <div class="tabular">03:14 · You confirmed</div>
+      </div>
+
+    </div>
+
+    <div class="pick-notes">
+      <div class="pick-note"><span class="pick-src">Header · B</span>Answers "how serious, is it done" in one glance, before the title is even read.</div>
+      <div class="pick-note"><span class="pick-src">Summary · B</span>Keeps the AI summary as plain, readable prose — a card frame here would compete with the real evidence tiles below.</div>
+      <div class="pick-note"><span class="pick-src">Details · B</span>Witness status stays visible as a tag, not buried in a sentence; missing fields prompt instead of hiding.</div>
+      <div class="pick-note"><span class="pick-src">Evidence · B</span>Filenames stay fully legible; Add stops competing with attached proof.</div>
+      <div class="pick-note"><span class="pick-src">History · B</span>Separates human testimony from the machine/audit trail — the distinction that matters most once this becomes a record.</div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  // Minimal JS: expand/collapse "Show full report" toggles. That's it.
+  document.querySelectorAll('.js-toggle').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var p = btn.previousElementSibling;
+      var expanded = btn.dataset.expanded === '1';
+      p.textContent = expanded ? p.dataset.short : p.dataset.full;
+      btn.textContent = expanded ? 'Show full report' : 'Show less';
+      btn.dataset.expanded = expanded ? '0' : '1';
+    });
+  });
+</script>
+</body>
+</html>

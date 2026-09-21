@@ -1,6 +1,7 @@
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import { PlayIcon } from 'lucide-react';
 import { HistoryEntry } from '../types/report';
+import { Avatar } from './Avatar';
 
 const WAVEFORM = [6, 11, 7, 14, 9, 16, 8, 12, 6, 13, 9, 15, 7, 10, 6, 12, 8, 14, 7, 9];
 
@@ -37,29 +38,28 @@ function ReportEntry({ entry, location }: {entry: HistoryEntry;location: string;
 
   const hasRecording = entry.input === 'Voice' && Boolean(entry.duration);
   const canExpand = clamped || hasRecording;
+  const person = entry.person;
+  const role = entry.role ?? person?.role;
 
   return (
     <>
-      <div className="flex items-start justify-between gap-4">
-        <p className="min-w-0 text-meta text-muted">
-          {entry.time} <span className="text-faint">·</span>{' '}
-          <span className="text-faint">{entry.location ?? location}</span>
-        </p>
-        <p className="flex shrink-0 items-center gap-1.5 text-meta text-muted">
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-raised text-[11px] font-medium text-muted">
-            {entry.person?.initials}
-          </span>
-          <span className="text-txt">{entry.person?.name.split(' ')[0]}</span>
-          <span className="text-faint">·</span>
-          <span>{entry.role ?? entry.person?.role}</span>
-        </p>
-      </div>
+      <p className="text-meta text-muted">
+        {entry.time} <span className="text-faint">·</span>{' '}
+        <span className="text-faint">{entry.location ?? location}</span>
+      </p>
 
       <p ref={textRef} className={`mt-1.5 text-body text-txt ${expanded ? '' : 'clamp-2'}`}>
         {entry.text}
       </p>
 
       {expanded && hasRecording && entry.duration && <AudioPlayer duration={entry.duration} />}
+
+      {expanded && person &&
+      <p className="mt-2 flex items-center gap-1.5 text-label text-faint">
+        <Avatar person={person} className="h-5 w-5 bg-raised text-[10px]" />
+        <span>{person.name}, {role}</span>
+      </p>
+      }
 
       {canExpand &&
       <button
@@ -80,32 +80,38 @@ interface HistoryTimelineProps {
 }
 
 export function HistoryTimeline({ entries, location }: HistoryTimelineProps) {
+  const reports = entries.filter((entry) => entry.kind !== 'system');
+  const systemEntries = entries.filter((entry) => entry.kind === 'system');
+
   return (
     <section aria-labelledby="review-history-title" className="mt-8">
       <h2 id="review-history-title" className="text-section font-semibold text-txt">
         History
       </h2>
 
+      {reports.length > 0 &&
       <ol className="mt-3 border-l border-line pl-4">
-        {entries.map((entry) =>
+          {reports.map((entry) =>
         <li key={entry.id} className="relative pb-5 last:pb-0">
-            <span
-            aria-hidden
-            className={[
-            'absolute -left-[21px] top-2 h-1.5 w-1.5 rounded-full',
-            entry.kind === 'system' ? 'bg-line' : 'bg-faint'].
-            join(' ')} />
-          
-            {entry.kind === 'system' ?
-          <p className="text-meta text-faint">
-                {entry.time} · {entry.label}
-              </p> :
-
-          <ReportEntry entry={entry} location={location} />
-          }
-          </li>
+              <span aria-hidden className="absolute -left-[21px] top-2 h-1.5 w-1.5 rounded-full bg-faint" />
+              <ReportEntry entry={entry} location={location} />
+            </li>
         )}
-      </ol>
+        </ol>
+      }
+
+      {systemEntries.length > 0 &&
+      <>
+          <p className="mt-5 text-label uppercase tracking-wide text-faint">System log</p>
+          <ol className="mt-2 space-y-2">
+            {systemEntries.map((entry) =>
+          <li key={entry.id} className="text-meta text-faint">
+                <span className="tabular-nums">{entry.time}</span> · {entry.label}
+              </li>
+          )}
+          </ol>
+        </>
+      }
     </section>);
 
 }

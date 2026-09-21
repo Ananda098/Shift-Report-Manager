@@ -4,6 +4,12 @@ import { DetailRow } from '../types/report';
 import { InlineEditable } from './InlineEditable';
 import { HighlightText } from './HighlightText';
 
+/** Splits a trailing " — role" annotation off a party line, e.g. "Zosia, bar staff — witness". */
+function splitRole(value: string): {text: string;role: string | null;} {
+  const match = value.match(/^(.*?)\s+—\s+([a-z][a-z\s]*)$/i);
+  return match ? { text: match[1], role: match[2] } : { text: value, role: null };
+}
+
 interface DetailsSectionProps {
   rows: DetailRow[];
   highlightId: string | null;
@@ -44,16 +50,28 @@ export function DetailsSection({
                 {row.label}
               </span>
               <div className="min-w-0 flex-1 space-y-0.5">
-                {row.values.map((value, index) =>
-                <InlineEditable
-                  key={`${row.id}-${index}`}
-                  value={value}
-                  ariaLabel={`${row.label} line ${index + 1}`}
-                  onChange={(next) => onChange(row.id, index, next)}>
-                  
-                    <HighlightText active={highlightId === row.id}>{value}</HighlightText>
-                  </InlineEditable>
-                )}
+                {row.values.map((value, index) => {
+                const isParties = row.id === 'parties';
+                const { text, role } = isParties ?
+                splitRole(value) :
+                { text: value, role: null };
+                return (
+                  <InlineEditable
+                    key={`${row.id}-${index}`}
+                    value={value}
+                    ariaLabel={`${row.label} line ${index + 1}`}
+                    textClass={row.id === 'time' ? 'text-body tabular-nums' : undefined}
+                    onChange={(next) => onChange(row.id, index, next)}>
+
+                      <HighlightText active={highlightId === row.id}>{text}</HighlightText>
+                      {role &&
+                    <span className="ml-2 inline-flex items-center rounded-md bg-raised px-1.5 py-0.5 text-label text-muted">
+                          {role}
+                        </span>
+                    }
+                    </InlineEditable>);
+
+              })}
               </div>
 
               {row.source &&

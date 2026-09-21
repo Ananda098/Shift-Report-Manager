@@ -367,7 +367,7 @@ export const incidents: ReviewIncident[] = [
 {
   id: 'i-9',
   tier: 'T2',
-  type: 'Ejection',
+  type: 'Repeated harassment complaint, ejected after two warnings',
   date: 'Sun 21',
   time: '02:40',
   location: 'Entrance',
