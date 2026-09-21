@@ -10,6 +10,15 @@ const THUMBNAILS: Record<string, string> = {
 
 const TILE = 'relative h-32 w-24 shrink-0 overflow-hidden rounded-lg border border-line bg-card';
 
+/** Shortens a filename to fit one line while keeping its extension, e.g. "CCTV_cloa….mp4". */
+function truncateFileName(name: string, headChars = 6): string {
+  const dot = name.lastIndexOf('.');
+  if (dot <= 0) return name;
+  const base = name.slice(0, dot);
+  const ext = name.slice(dot);
+  return base.length <= headChars ? name : `${base.slice(0, headChars)}…${ext}`;
+}
+
 interface EvidenceSectionProps {
   evidence: Evidence[];
   highlightId: string | null;
@@ -86,11 +95,11 @@ export function EvidenceSection({
               <p
                 title={item.name}
                 className={[
-                'mt-1.5 break-words text-label leading-snug transition-colors duration-300 ease-out',
+                'mt-1.5 overflow-hidden whitespace-nowrap text-label leading-snug transition-colors duration-300 ease-out',
                 highlighted ? 'text-teal' : 'text-muted'].
                 join(' ')}>
 
-                {item.name}
+                {truncateFileName(item.name)}
               </p>
             </div>);
 
