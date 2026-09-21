@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { SparklesIcon, FileTextIcon, ChevronDownIcon } from 'lucide-react';
 import { GhostPrompt } from './GhostPrompt';
 import { RecordButton } from './RecordButton';
 import { getCaretCoordinates, measureTextWidth } from '../utils/caretCoordinates';
@@ -13,10 +14,15 @@ const GHOST_PROMPTS = [
 'Anything we need?'];
 
 
-const TRANSCRIPT = 'Door was slow around one, Tomek had to help out.';
+// One dictated note covering crowd, a concern, an incident and a supply
+// note — everything the mocked report parser knows how to recognise,
+// so a single Record tap can demo the whole notes-to-report flow.
+const TRANSCRIPT =
+'It was mostly regulars tonight, and there was a birthday group, maybe twenty of them, in the back room from eleven. Floor never emptied out after midnight — full right through to lights up. Mezzanine party finished ahead of schedule, all of them out by about one. Door was slow around one, Tomek had to help out. Toilets by the stairs flooded again. Roped it off at ten past two. Back stairwell camera is still dead — that is the fourth night now. Two guys started shoving each other near the smoking area around half twelve, door team split them up fast. We killed the house tequila around half one and switched to the backup. Order tongs and a new small fryer basket, the old one is bent.';
 
 const PAUSE_MS = 1750;
-const WORD_MS = 90;
+const WORDS_PER_TICK = 3;
+const WORD_MS = 45;
 const HIGHLIGHT_MS = 1500;
 
 interface Ghost {
@@ -25,12 +31,66 @@ interface Ghost {
   top: number;
 }
 
-interface NotesTabProps {
+interface NotesCardProps {
   value: string;
   onChange: (value: string) => void;
+  onAddToReport: () => void;
+  /** True once the card has settled into its compact, post-push state. */
+  collapsed: boolean;
+  onExpand: () => void;
+  /** For the collapsed summary line — counts across the whole report, not just the last push. */
+  statementCount: number;
+  incidentCount: number;
 }
 
-export function NotesTab({ value, onChange }: NotesTabProps) {
+function CollapsedSummary({
+  onExpand,
+  statementCount,
+  incidentCount
+
+
+
+
+}: {onExpand: () => void;statementCount: number;incidentCount: number;}) {
+  const parts = [`${statementCount} statement${statementCount === 1 ? '' : 's'}`];
+  if (incidentCount > 0) {
+    parts.push(`${incidentCount} incident${incidentCount === 1 ? '' : 's'}`);
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onExpand}
+      className="flex w-full items-center justify-between rounded-xl border border-line bg-card px-5 py-4 text-left outline-none transition-colors duration-150 ease-out hover:bg-raised focus-visible:ring-2 focus-visible:ring-teal">
+
+      <span className="flex items-center gap-2.5">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-raised text-muted">
+          <FileTextIcon size={15} strokeWidth={1.75} />
+        </span>
+        <span className="text-body text-txt">
+          Notes added <span className="text-faint">·</span>{' '}
+          <span className="text-muted">{parts.join(' · ')}</span>
+        </span>
+      </span>
+      <span className="flex items-center gap-1 text-meta text-muted">
+        View or add more
+        <ChevronDownIcon size={15} strokeWidth={2} />
+      </span>
+    </button>);
+
+}
+
+/** The freeform "write or record" card. Sits above Incidents; collapses to a
+    one-line summary once its contents have been pushed into the report. */
+export function NotesCard({
+  value,
+  onChange,
+  onAddToReport,
+  collapsed,
+  onExpand,
+  statementCount,
+  incidentCount
+}: NotesCardProps) {
   const [ghost, setGhost] = useState<Ghost | null>(null);
   const [recording, setRecording] = useState(false);
   const [typing, setTyping] = useState(false);
@@ -73,11 +133,12 @@ export function NotesTab({ value, onChange }: NotesTabProps) {
 
   // Keep the editor sized to its content so the document flows from the top.
   useEffect(() => {
+    if (collapsed) return;
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = 'auto';
     el.style.height = `${el.scrollHeight}px`;
-  }, [value, typing, highlightStart]);
+  }, [value, typing, highlightStart, collapsed]);
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     let next = e.target.value;
@@ -132,7 +193,7 @@ export function NotesTab({ value, onChange }: NotesTabProps) {
     const words = TRANSCRIPT.split(' ');
     let i = 0;
     const tick = () => {
-      i += 1;
+      i = Math.min(i + WORDS_PER_TICK, words.length);
       onChange(base + words.slice(0, i).join(' '));
       if (i < words.length) {
         window.setTimeout(tick, WORD_MS);
@@ -150,7 +211,17 @@ export function NotesTab({ value, onChange }: NotesTabProps) {
     window.setTimeout(tick, WORD_MS);
   };
 
+  if (collapsed) {
+    return (
+      <CollapsedSummary
+        onExpand={onExpand}
+        statementCount={statementCount}
+        incidentCount={incidentCount} />);
+
+  }
+
   const showTranscriptView = typing || highlightStart !== null;
+  const canPush = !typing && value.trim().length > 0;
 
   return (
     <div className="flex h-[460px] flex-col overflow-hidden rounded-xl border border-line bg-card">
@@ -163,7 +234,7 @@ export function NotesTab({ value, onChange }: NotesTabProps) {
             'transition-colors duration-300 ease-out',
             highlightFading ? 'text-txt' : 'text-teal'].
             join(' ')}>
-            
+
               {value.slice(highlightStart ?? 0)}
             </span>
           </p> :
@@ -183,7 +254,7 @@ export function NotesTab({ value, onChange }: NotesTabProps) {
             placeholder={PLACEHOLDER}
             spellCheck={false}
             className="block w-full resize-none overflow-hidden bg-transparent text-body text-txt outline-none placeholder:text-faint" />
-          
+
             {ghost &&
           <GhostPrompt
             text={ghost.text}
@@ -196,7 +267,16 @@ export function NotesTab({ value, onChange }: NotesTabProps) {
         }
       </div>
 
-      <div className="flex items-center justify-end border-t border-line px-4 py-3">
+      <div className="flex items-center justify-end gap-2 border-t border-line px-4 py-3">
+        <button
+          type="button"
+          onClick={onAddToReport}
+          disabled={!canPush}
+          className="inline-flex h-10 items-center gap-1.5 rounded-lg px-4 text-meta font-medium text-teal outline-none transition-colors duration-150 ease-out hover:bg-teal-fill focus-visible:ring-2 focus-visible:ring-teal disabled:pointer-events-none disabled:opacity-40">
+
+          <SparklesIcon size={15} strokeWidth={2} />
+          Add my notes to the report
+        </button>
         <RecordButton
           recording={recording}
           disabled={typing}
@@ -206,7 +286,7 @@ export function NotesTab({ value, onChange }: NotesTabProps) {
             setRecording(true);
           }}
           onStop={handleStop} />
-        
+
       </div>
     </div>);
 

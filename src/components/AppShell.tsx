@@ -1,34 +1,29 @@
 import React, { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { SparklesIcon } from 'lucide-react';
-import { AddedSource, ReviewIncident, Statement, StatementSection } from '../types/report';
+import { ReviewIncident, Statement, StatementSection } from '../types/report';
 import { statementSections } from '../data/statements';
 import { people } from '../data/people';
-import { categoryForText } from '../utils/categories';
 import { sortForQueue, systemEntry } from '../utils/reviewActions';
+import {
+  answersToStatements,
+  DrawerAnswer,
+  ParsedIncident,
+  ParsedStatement,
+  parseNotes,
+  SECTION_QUESTIONS } from
+'../utils/mockAi';
 import { NavRail } from './NavRail';
 import { ReportHeader } from './ReportHeader';
 import { ReviewModule } from './ReviewModule';
-import { NotesTab } from './NotesTab';
-import { SummaryTab } from './SummaryTab';
+import { NotesCard } from './NotesCard';
+import { ReportSections } from './ReportSections';
 import { SourcePanel } from './SourcePanel';
 import { MarginRail, MarginRailItem } from './MarginRail';
-import { InlineAIHelp } from './InlineAIHelp';
-import { RestockDetailsHelp } from './RestockDetailsHelp';
 import { IncidentPreviewPanel } from './IncidentPreviewPanel';
 import { AddIncidentPanel, NewIncidentDraft } from './AddIncidentPanel';
+import { AddInfoPanel } from './AddInfoPanel';
 import { ReviewView } from './ReviewView';
 import { Toast } from './Toast';
-
-type Tab = 'notes' | 'summary';
-
-type HelpStep = 'restock' | 'restock-details';
-
-interface HelpCard {
-  id: string;
-  statementId: string;
-  step: HelpStep;
-}
 
 interface AppShellProps {
   incidents: ReviewIncident[];
@@ -38,23 +33,26 @@ interface AppShellProps {
   onResolveHelp: (helpId: string) => void;
 }
 
-const tabs: {id: Tab;label: string;ai?: boolean;}[] = [
-{ id: 'notes', label: 'Notes' },
-{ id: 'summary', label: 'Summary', ai: true }];
+/** Placeholder "now" used as the source time for anything the manager files directly. */
+const NOW = '03:14';
 
-
-const SUGGESTION_SOURCE: AddedSource = {
-  label: 'Added via suggestion',
-  by: 'you',
-  time: '03:14'
-};
-
-const INITIAL_HELP: HelpCard[] = [
-{ id: 'help-restock', statementId: 's-needs-1', step: 'restock' }];
-
-
-/** Docs-style margin: at most two help cards are visible, the rest queue behind them. */
-const MAX_VISIBLE_HELP = 2;
+/** Human-readable line for the post-push toast, naming where things landed. */
+function summarisePush(
+statements: ParsedStatement[],
+incidents: ParsedIncident[],
+titleById: Record<string, string>)
+: string {
+  if (statements.length === 0 && incidents.length === 0) {
+    return 'Nothing new in your notes — already in the report.';
+  }
+  const counts = new Map<string, number>();
+  statements.forEach((s) => counts.set(s.sectionId, (counts.get(s.sectionId) ?? 0) + 1));
+  const parts = Array.from(counts.entries()).map(([id, n]) => `${n} to ${titleById[id] ?? id}`);
+  if (incidents.length > 0) {
+    parts.push(`${incidents.length} incident${incidents.length > 1 ? 's' : ''} awaiting review`);
+  }
+  return `Added ${parts.join(' · ')}.`;
+}
 
 export function AppShell({
   incidents,
@@ -64,16 +62,19 @@ export function AppShell({
   onResolveHelp
 }: AppShellProps) {
   const [view, setView] = useState<'report' | 'review'>('report');
-  const [tab, setTab] = useState<Tab>('notes');
   const [notes, setNotes] = useState('');
-  const [sections, setSections] = useState<StatementSection[]>(statementSections);
+  const [notesPushed, setNotesPushed] = useState(false);
+  const [notesCollapsed, setNotesCollapsed] = useState(false);
+  const [pushedKeys, setPushedKeys] = useState<Set<string>>(new Set());
+  const [sections, setSections] = useState<StatementSection[]>(
+    statementSections.map((section) => ({ ...section, statements: [] }))
+  );
   const [openStatementId, setOpenStatementId] = useState<string | null>(null);
   const [openIncidentId, setOpenIncidentId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [addInfoSectionId, setAddInfoSectionId] = useState<string | null>(null);
   const [newIncidentId, setNewIncidentId] = useState<string | null>(null);
-  const [newStatementId, setNewStatementId] = useState<string | null>(null);
-  const [helpCards, setHelpCards] = useState<HelpCard[]>(INITIAL_HELP);
-  const [highlight, setHighlight] = useState<{id: string;from: number;} | null>(null);
+  const [newStatementIds, setNewStatementIds] = useState<string[]>([]);
   const [currentReviewId, setCurrentReviewId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [panelOwnsPrimary, setPanelOwnsPrimary] = useState(false);
@@ -81,9 +82,11 @@ export function AppShell({
   const allStatements = sections.flatMap((section) => section.statements);
   const openStatement = allStatements.find((s) => s.id === openStatementId) ?? null;
   const openIncident = incidents.find((i) => i.id === openIncidentId) ?? null;
-  const visibleHelp = helpCards.slice(0, MAX_VISIBLE_HELP);
+  const addInfoSection = sections.find((s) => s.id === addInfoSectionId) ?? null;
   const reviewedCount = incidents.filter((incident) => incident.status !== 'pending').length;
   const allReviewed = reviewedCount === incidents.length;
+  const notesStatementCount = allStatements.filter((s) => s.source.input === 'Note').length;
+  const notesIncidentCount = incidents.filter((i) => i.id.startsWith('i-note-')).length;
   // One primary per screen: anything layered on top takes the primary slot.
   const demotePagePrimaries = panelOwnsPrimary || toast !== null;
 
@@ -91,6 +94,11 @@ export function AppShell({
     const pending = sortForQueue(incidents.filter((i) => i.status === 'pending'));
     setCurrentReviewId(incidentId ?? pending[0]?.id ?? incidents[0].id);
     setView('review');
+  };
+
+  const flashNew = (ids: string[]) => {
+    setNewStatementIds(ids);
+    window.setTimeout(() => setNewStatementIds([]), 2200);
   };
 
   const handleAddIncident = (draft: NewIncidentDraft) => {
@@ -115,29 +123,100 @@ export function AppShell({
       history: [systemEntry('You added this incident · voice')]
     });
     setAddOpen(false);
-    setTab('summary');
     setNewIncidentId(id);
     window.setTimeout(() => setNewIncidentId((v) => v === id ? null : v), 2200);
   };
 
-  const addStatement = (sectionId: string, text: string) => {
-    const statement: Statement = {
-      id: `s-new-${Date.now()}`,
-      chips: [categoryForText(text)],
-      text,
-      source: { quote: text, person: people.you, time: '03:14', input: 'Typed' }
-    };
+  /** "Add my notes to the report": mocked AI splits new notes into tagged
+      statements per section, and any incident-shaped line becomes a real
+      incident awaiting review instead of report text. Already-pushed
+      phrases are skipped, so re-pushing never duplicates or overwrites —
+      and the card settles into its compact summary either way. */
+  const handlePushNotes = () => {
+    const { statements: parsed, incidents: parsedIncidents } = parseNotes(notes, pushedKeys);
+    setNotesPushed(true);
+    setNotesCollapsed(true);
+
+    if (parsed.length > 0) {
+      const newIds: string[] = [];
+      setSections((prev) =>
+      prev.map((section) => {
+        const toAdd = parsed.filter((p) => p.sectionId === section.id);
+        if (toAdd.length === 0) return section;
+        const added: Statement[] = toAdd.map((p) => {
+          const id = `s-note-${section.id}-${p.key}`;
+          newIds.push(id);
+          return {
+            id,
+            chips: p.chips,
+            text: p.text,
+            source: { quote: p.quote, person: people.you, time: NOW, input: 'Note' }
+          };
+        });
+        return { ...section, statements: [...section.statements, ...added] };
+      })
+      );
+      flashNew(newIds);
+    }
+
+    parsedIncidents.forEach((inc) => {
+      onAddIncident({
+        id: `i-note-${inc.key}`,
+        tier: inc.tier,
+        type: inc.type,
+        date: 'Sun 21',
+        time: inc.time,
+        location: inc.location,
+        status: 'pending',
+        reportedBy: [],
+        description: inc.description,
+        summary: inc.description,
+        evidence: [],
+        details: [
+        { id: 'time', label: 'Time', values: [inc.time] },
+        { id: 'location', label: 'Location', values: [inc.location] },
+        { id: 'parties', label: 'Parties', values: ['Not yet identified'] }],
+
+        history: [systemEntry('Added from your notes — awaiting review')]
+      });
+    });
+
+    setPushedKeys((prev) => {
+      const next = new Set(prev);
+      parsed.forEach((p) => next.add(p.key));
+      parsedIncidents.forEach((i) => next.add(i.key));
+      return next;
+    });
+
+    const titleById = Object.fromEntries(sections.map((s) => [s.id, s.title]));
+    setToast(summarisePush(parsed, parsedIncidents, titleById));
+  };
+
+  /** "+ Add information" drawer: each answered question becomes its own
+      tagged statement (mocked AI — the answer text stands as written). */
+  const handleAddInfo = (sectionId: string, answers: DrawerAnswer[]) => {
+    const created = answersToStatements(answers);
+    setAddInfoSectionId(null);
+    if (created.length === 0) return;
+
+    const newIds: string[] = [];
     setSections((prev) =>
-    prev.map((section) =>
-    section.id === sectionId ?
-    { ...section, statements: [...section.statements, statement] } :
-    section
-    )
+    prev.map((section) => {
+      if (section.id !== sectionId) return section;
+      const added: Statement[] = created.map((c, index) => {
+        const id = `s-add-${sectionId}-${Date.now()}-${index}`;
+        newIds.push(id);
+        return {
+          id,
+          chips: c.chips,
+          text: c.text,
+          source: { quote: c.text, person: people.you, time: NOW, input: 'Typed' }
+        };
+      });
+      return { ...section, statements: [...section.statements, ...added] };
+    })
     );
-    setNewStatementId(statement.id);
-    window.setTimeout(() => {
-      setNewStatementId((v) => v === statement.id ? null : v);
-    }, 2200);
+    flashNew(newIds);
   };
 
   const updateStatement = (id: string, text: string) => {
@@ -157,101 +236,21 @@ export function AppShell({
     }))
     );
     setOpenStatementId((current) => current === id ? null : current);
-    setHelpCards((prev) => prev.filter((card) => card.statementId !== id));
-  };
-
-  const appendToStatement = (id: string, suffix: string) => {
-    const current = allStatements.find((s) => s.id === id);
-    if (!current) return;
-    const from = current.text.length;
-    setSections((prev) =>
-    prev.map((section) => ({
-      ...section,
-      statements: section.statements.map((s) =>
-      s.id === id ?
-      {
-        ...s,
-        text: `${s.text}${suffix}`,
-        addedSources: s.addedSources?.length ? s.addedSources : [SUGGESTION_SOURCE]
-      } :
-      s
-      )
-    }))
-    );
-    setHighlight({ id, from });
-    window.setTimeout(() => {
-      setHighlight((h) => h && h.id === id && h.from === from ? null : h);
-    }, 2200);
-  };
-
-  const removeHelp = (cardId: string) => {
-    setHelpCards((prev) => prev.filter((card) => card.id !== cardId));
-  };
-
-  const replaceHelp = (cardId: string, next: HelpCard) => {
-    setHelpCards((prev) => prev.map((card) => card.id === cardId ? next : card));
-  };
-
-  const renderHelp = (card: HelpCard) => {
-    const anchorId = `statement-${card.statementId}`;
-    if (card.step === 'restock') {
-      return (
-        <InlineAIHelp
-          anchorId={anchorId}
-          type="optional"
-          question="Do you need to request a restock?"
-          options={[
-          {
-            label: 'Yes, request restock',
-            onSelect: () => {
-              appendToStatement(card.statementId, ' Restock requested.');
-              replaceHelp(card.id, {
-                id: `${card.id}-details`,
-                statementId: card.statementId,
-                step: 'restock-details'
-              });
-            }
-          },
-          { label: 'No', onSelect: () => removeHelp(card.id) }]
-          }
-          onDismiss={() => removeHelp(card.id)} />);
-
-
-    }
-    return (
-      <RestockDetailsHelp
-        anchorId={anchorId}
-        onAdd={(detail) => {
-          appendToStatement(card.statementId, detail);
-          removeHelp(card.id);
-        }}
-        onDismiss={() => removeHelp(card.id)} />);
-
-
   };
 
   const marginItems: MarginRailItem[] = [];
-  if (tab === 'summary' && !openIncident && !addOpen) {
-    visibleHelp.forEach((card) => {
-      marginItems.push({
-        id: card.id,
-        anchorId: `statement-${card.statementId}`,
-        element: renderHelp(card)
-      });
+  if (!openIncident && !addOpen && !addInfoSection && openStatement) {
+    marginItems.push({
+      id: `source-${openStatement.id}`,
+      anchorId: `statement-${openStatement.id}`,
+      element:
+      <SourcePanel
+        source={openStatement.source}
+        addedSources={openStatement.addedSources}
+        onClose={() => setOpenStatementId(null)} />
+
+
     });
-    if (openStatement) {
-      marginItems.push({
-        id: `source-${openStatement.id}`,
-        anchorId: `statement-${openStatement.id}`,
-        element:
-        <SourcePanel
-          source={openStatement.source}
-          addedSources={openStatement.addedSources}
-          onClose={() => setOpenStatementId(null)} />
-
-
-      });
-    }
   }
 
   if (view === 'review' && currentReviewId) {
@@ -266,7 +265,6 @@ export function AppShell({
         onBack={() => setView('report')}
         onFinish={() => {
           setView('report');
-          setTab('summary');
           setToast(`All ${incidents.length} incidents reviewed`);
         }} />);
 
@@ -282,6 +280,18 @@ export function AppShell({
           <div className="w-full shrink-0 px-10 py-9 dt:w-[760px]">
             <ReportHeader hasUnreviewed={!allReviewed} demoted={demotePagePrimaries} />
 
+            <div className="mt-6 mb-7">
+              <NotesCard
+                value={notes}
+                onChange={setNotes}
+                onAddToReport={handlePushNotes}
+                collapsed={notesCollapsed}
+                onExpand={() => setNotesCollapsed(false)}
+                statementCount={notesStatementCount}
+                incidentCount={notesIncidentCount} />
+
+            </div>
+
             {!allReviewed &&
             <ReviewModule
               total={incidents.length}
@@ -291,57 +301,21 @@ export function AppShell({
 
             }
 
-            <div
-              role="tablist"
-              aria-label="Report sections"
-              className="flex items-center gap-6 border-b border-line">
-              
-              {tabs.map(({ id, label, ai }) =>
-              <button
-                key={id}
-                role="tab"
-                id={`tab-${id}`}
-                aria-selected={tab === id}
-                aria-controls={`panel-${id}`}
-                type="button"
-                onClick={() => setTab(id)}
-                className={[
-                '-mb-px inline-flex items-center gap-1.5 border-b-2 px-0.5 pb-3 pt-1 text-body outline-none transition-colors duration-150 ease-out',
-                'focus-visible:ring-2 focus-visible:ring-teal',
-                tab === id ?
-                'border-teal font-medium text-txt' :
-                'border-transparent text-muted hover:text-txt'].
-                join(' ')}>
-                
-                  {ai && <SparklesIcon size={14} strokeWidth={2} className="text-teal" />}
-                  {label}
-                </button>
-              )}
-            </div>
+            <ReportSections
+              incidents={incidents}
+              highlightIncidentId={newIncidentId}
+              onGoToReview={() => openReview()}
+              onAddIncident={() => setAddOpen(true)}
+              sections={sections}
+              notesPushed={notesPushed}
+              newStatementIds={newStatementIds}
+              openStatementId={openStatementId}
+              onOpenSource={(statement: Statement) => setOpenStatementId(statement.id)}
+              onOpenIncident={(incident) => setOpenIncidentId(incident.id)}
+              onChangeStatement={updateStatement}
+              onDeleteStatement={deleteStatement}
+              onAddInfo={setAddInfoSectionId} />
 
-            <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`} className="pt-6">
-              {tab === 'notes' ?
-              <NotesTab value={notes} onChange={setNotes} /> :
-
-              <SummaryTab
-                hasNotes={notes.trim().length > 0}
-                incidents={incidents}
-                highlightIncidentId={newIncidentId}
-                onGoToReview={() => openReview()}
-                onAddIncident={() => setAddOpen(true)}
-                sections={sections}
-                openStatementId={openStatementId}
-                commentedStatementIds={visibleHelp.map((card) => card.statementId)}
-                highlight={highlight}
-                newStatementId={newStatementId}
-                onOpenSource={(statement: Statement) => setOpenStatementId(statement.id)}
-                onOpenIncident={(incident) => setOpenIncidentId(incident.id)}
-                onChangeStatement={updateStatement}
-                onDeleteStatement={deleteStatement}
-                onAddStatement={addStatement} />
-
-              }
-            </div>
           </div>
 
           <div
@@ -376,10 +350,19 @@ export function AppShell({
           onPrimaryChange={setPanelOwnsPrimary} />
 
         }
+        {addInfoSection &&
+        <AddInfoPanel
+          key={`add-info-${addInfoSection.id}`}
+          sectionTitle={addInfoSection.title}
+          questions={SECTION_QUESTIONS[addInfoSection.id] ?? []}
+          onClose={() => setAddInfoSectionId(null)}
+          onAdd={(answers) => handleAddInfo(addInfoSection.id, answers)} />
+
+        }
       </AnimatePresence>
 
       <AnimatePresence>
-        {toast && <Toast key="review-toast" message={toast} onDone={() => setToast(null)} />}
+        {toast && <Toast key="report-toast" message={toast} onDone={() => setToast(null)} />}
       </AnimatePresence>
     </div>);
 

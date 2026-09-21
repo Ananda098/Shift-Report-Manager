@@ -1,9 +1,12 @@
 import { StatementSection } from '../types/report';
 import { people } from './people';
 
-export const dayOverview =
-'Steady Saturday. Doors opened at ten and the room filled just before eleven, mostly regulars plus a birthday group in the back room. The floor held until close with two busier pushes around one and half two. Ten incidents were logged, most of them refusals at the door.';
-
+/**
+ * Section metadata (id/title) seeds the report's empty sections; the
+ * statements here are never shown directly — they're the mocked AI's
+ * knowledge base (see utils/mockAi.ts), matched against the manager's
+ * notes so the demo produces the same tagged output every time.
+ */
 export const statementSections: StatementSection[] = [
 {
   id: 'crowd',
