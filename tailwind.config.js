@@ -23,6 +23,7 @@ export default {
           t1: '#6E6A78',
           t2: '#E0A33E',
           t3: '#F0736F',
+          blue: '#5B8DEF',
         },
         ok: '#5FC08D',
       },

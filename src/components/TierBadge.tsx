@@ -3,14 +3,14 @@ import { Tier } from '../types/report';
 
 const dot: Record<Tier, string> = {
   T1: 'bg-tier-t1',
-  T2: 'bg-tier-t2',
-  T3: 'bg-tier-t3'
+  T2: 'bg-tier-blue',
+  T3: 'bg-tier-t2'
 };
 
 const label: Record<Tier, string> = {
   T1: 'text-muted',
-  T2: 'text-tier-t2',
-  T3: 'text-tier-t3'
+  T2: 'text-tier-blue',
+  T3: 'text-tier-t2'
 };
 
 export const TIER_LABEL: Record<Tier, string> = {
