@@ -16,7 +16,8 @@ import {
   ParsedIncident,
   ParsedStatement,
   parseNotes,
-  SECTION_QUESTIONS } from
+  SECTION_QUESTIONS,
+  suggestRestock } from
 '../utils/mockAi';
 import { NavRail } from './NavRail';
 import { ReportHeader } from './ReportHeader';
@@ -25,6 +26,7 @@ import { NotesCard } from './NotesCard';
 import { EditNotePanel } from './EditNotePanel';
 import { ReportSections } from './ReportSections';
 import { SourcePanel } from './SourcePanel';
+import { RestockFollowUp } from './RestockFollowUp';
 import { MarginRail, MarginRailItem } from './MarginRail';
 import { IncidentPreviewPanel } from './IncidentPreviewPanel';
 import {
@@ -97,6 +99,9 @@ export function AppShell({
     statementSections.map((section) => ({ ...section, statements: [] }))
   );
   const [openStatementId, setOpenStatementId] = useState<string | null>(null);
+  // An answered restock request the manager has reopened from its line in the
+  // report — its card comes back to the margin until they answer again.
+  const [editingRestockId, setEditingRestockId] = useState<string | null>(null);
   const [openIncidentId, setOpenIncidentId] = useState<string | null>(null);
   const [newIncidentId, setNewIncidentId] = useState<string | null>(null);
   const [newStatementIds, setNewStatementIds] = useState<string[]>([]);
@@ -518,6 +523,7 @@ export function AppShell({
       statements: section.statements.map((s) => s.id === id ? { ...s, restockRequest } : s)
     }))
     );
+    setEditingRestockId((current) => current === id ? null : current);
   };
 
   const deleteStatement = (id: string) => {
@@ -539,7 +545,40 @@ export function AppShell({
   drawerKey(drawer) :
   null;
 
+  /** Mocked AI: a supplies line naming bottled stock gets a "restock this?"
+      card in the margin, anchored to the line it read, until it's answered or
+      dismissed. Dismissed ones stay dismissed — later note pushes only ever
+      append statements, so the same suggestion never comes back. */
+  const restockSuggestions = sections.flatMap((section) =>
+  section.statements.
+  map((statement) => ({ statement, items: suggestRestock(section.id, statement.text) })).
+  filter(
+    ({ statement, items }) =>
+    items.length > 0 &&
+    statement.restockRequest?.status !== 'dismissed' && (
+    statement.restockRequest?.status !== 'added' || editingRestockId === statement.id)
+  )
+  );
+
   const marginItems: MarginRailItem[] = [];
+  // The drawer slides over the margin, so its cards step aside while one is up.
+  if (!openIncident && !drawer) {
+    restockSuggestions.forEach(({ statement, items }) => {
+      marginItems.push({
+        id: `restock-${statement.id}`,
+        anchorId: `statement-${statement.id}`,
+        element:
+        <RestockFollowUp
+          key={items.join('|')}
+          suggestedItems={items}
+          request={statement.restockRequest}
+          editing={editingRestockId === statement.id}
+          onChange={(request) => setStatementRestock(statement.id, request)} />
+
+
+      });
+    });
+  }
   if (!openIncident && !drawer && openStatement) {
     marginItems.push({
       id: `source-${openStatement.id}`,
@@ -621,7 +660,9 @@ export function AppShell({
               onOpenIncident={(incident) => openIncidentPreview(incident.id)}
               onChangeStatement={updateStatement}
               onDeleteStatement={deleteStatement}
+              restockSuggestionIds={restockSuggestions.map(({ statement }) => statement.id)}
               onChangeRestock={setStatementRestock}
+              onEditRestock={setEditingRestockId}
               onAddInfo={(sectionId) => openDrawer({ kind: 'info', sectionId })} />
 
           </div>

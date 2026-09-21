@@ -9,12 +9,11 @@ import {
   WrenchIcon } from
 'lucide-react';
 import { RestockRequest, ReviewIncident, Statement, StatementSection } from '../types/report';
-import { suggestRestock } from '../utils/mockAi';
 import { nightOrder } from '../utils/time';
 import { IncidentRow, INCIDENT_GRID } from './IncidentRow';
 import { StatementRow } from './StatementRow';
 import { EmptySection } from './EmptySection';
-import { RestockFollowUp } from './RestockFollowUp';
+import { RestockRequestLine } from './RestockRequestLine';
 
 interface ReportSectionsProps {
   incidents: ReviewIncident[];
@@ -36,8 +35,13 @@ interface ReportSectionsProps {
   onOpenIncident: (incident: ReviewIncident) => void;
   onChangeStatement: (id: string, text: string) => void;
   onDeleteStatement: (id: string) => void;
+  /** Statements with a restock suggestion card open in the margin — their text
+      is marked like a commented range. */
+  restockSuggestionIds: string[];
   /** The manager answered (or removed) a statement's restock follow-up. */
   onChangeRestock: (statementId: string, request: RestockRequest) => void;
+  /** Reopen an answered restock request in the margin card. */
+  onEditRestock: (statementId: string) => void;
   onAddInfo: (sectionId: string) => void;
 }
 
@@ -139,7 +143,9 @@ export function ReportSections({
   onOpenIncident,
   onChangeStatement,
   onDeleteStatement,
+  restockSuggestionIds,
   onChangeRestock,
+  onEditRestock,
   onAddInfo
 }: ReportSectionsProps) {
   const chronological = [...incidents].sort((a, b) => nightOrder(a.time) - nightOrder(b.time));
@@ -207,29 +213,26 @@ export function ReportSections({
 
             <ul className="-mx-2 space-y-0.5">
                 {section.statements.map((statement) => {
-                // Mocked AI: a supplies line naming bottled stock gets a
-                // "restock this?" follow-up until it's answered or dismissed.
-                const restockItems = suggestRestock(section.id, statement.text);
-                const followUpOpen =
-                restockItems.length > 0 && statement.restockRequest?.status !== 'dismissed';
+                // The mocked AI asks about restocking in the margin; what
+                // lands in the report is the request the manager confirmed.
+                const request = statement.restockRequest;
                 return (
                   <React.Fragment key={statement.id}>
                       <StatementRow
                       statement={statement}
                       active={openStatementId === statement.id}
-                      commented={followUpOpen}
+                      commented={restockSuggestionIds.includes(statement.id)}
                       highlightFrom={newStatementIds.includes(statement.id) ? 0 : null}
                       onOpenSource={onOpenSource}
                       onChangeText={onChangeStatement}
                       onDelete={onDeleteStatement} />
 
-                      {followUpOpen &&
+                      {request?.status === 'added' &&
                     <li className="px-3 pb-1.5 pt-1">
-                          <RestockFollowUp
-                        key={restockItems.join('|')}
-                        suggestedItems={restockItems}
-                        request={statement.restockRequest}
-                        onChange={(request) => onChangeRestock(statement.id, request)} />
+                          <RestockRequestLine
+                        request={request}
+                        onEdit={() => onEditRestock(statement.id)}
+                        onRemove={() => onChangeRestock(statement.id, { ...request, status: 'dismissed' })} />
 
                         </li>
                     }

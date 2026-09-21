@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { PencilIcon, SparklesIcon, XIcon } from 'lucide-react';
+import { SparklesIcon } from 'lucide-react';
 import { RestockItem, RestockRequest, RestockUrgency } from '../types/report';
 import {
   RESTOCK_DEFAULT_QTY,
@@ -12,11 +12,14 @@ interface RestockFollowUpProps {
   /** Items the mocked AI recognised in the statement, in the order it read them. */
   suggestedItems: string[];
   request?: RestockRequest;
+  /** Reopened from an answered request line — skip the opening question. */
+  editing?: boolean;
   onChange: (request: RestockRequest) => void;
 }
 
-/** Which question the card is on. `done` is the collapsed request line. */
-type Step = 'ask' | 'quantities' | 'urgency' | 'done';
+/** Which question the card is on. The answered request lives on the statement,
+    not here, so the card is gone as soon as it has one. */
+type Step = 'ask' | 'quantities' | 'urgency';
 
 const CHIP =
 'rounded-lg border px-2.5 py-2.5 text-meta outline-none transition-colors duration-150 ease-out ' +
@@ -24,96 +27,76 @@ const CHIP =
 const CHIP_IDLE = 'border-line text-muted hover:border-teal hover:text-teal';
 const CHIP_ON = 'border-teal text-teal';
 
-/** "Before next shift" reads as a clause at the end of the request line. */
-const lowerFirst = (value: string) => value.charAt(0).toLowerCase() + value.slice(1);
+/** The quiet Back / Skip pair along the bottom of the card. */
+const FOOT_BUTTON =
+'rounded-md px-1.5 py-0.5 text-label text-faint outline-none transition-colors duration-150 ease-out ' +
+'hover:text-muted focus-visible:ring-2 focus-visible:ring-teal';
 
-export function RestockFollowUp({ suggestedItems, request, onChange }: RestockFollowUpProps) {
-  const added = request?.status === 'added';
-  const [step, setStep] = useState<Step>(added ? 'done' : 'ask');
+export function RestockFollowUp({
+  suggestedItems,
+  request,
+  editing = false,
+  onChange
+}: RestockFollowUpProps) {
+  const [step, setStep] = useState<Step>(editing ? 'quantities' : 'ask');
   // qty 0 means "not answered yet", which is what holds back the next step.
   const [items, setItems] = useState<RestockItem[]>(
-    request?.items ?? suggestedItems.map((name) => ({ name, qty: 0 }))
+    request?.items.map((item) => ({ ...item })) ??
+    suggestedItems.map((name) => ({ name, qty: 0 }))
   );
   const [otherFor, setOtherFor] = useState<string | null>(null);
   const [otherValue, setOtherValue] = useState('');
+  const [leaving, setLeaving] = useState(false);
 
-  if (request?.status === 'dismissed') return null;
+  /** Fades the card out before the answer takes it off the rail, like InlineAIHelp. */
+  const resolve = (action: () => void) => {
+    if (leaving) return;
+    setLeaving(true);
+    window.setTimeout(action, 200);
+  };
 
   /** Fills in anything still unanswered, so a skipped step never blocks. */
   const settled = (list: RestockItem[]): RestockItem[] =>
   list.map((item) => item.qty > 0 ? item : { ...item, qty: RESTOCK_DEFAULT_QTY });
 
   const setQty = (name: string, qty: number) => {
+    const wasIncomplete = items.some((item) => item.qty === 0);
     const next = items.map((item) => item.name === name ? { ...item, qty } : item);
     setItems(next);
     setOtherFor(null);
     setOtherValue('');
-    // One question at a time: move on as soon as every item has an answer.
-    if (next.every((item) => item.qty > 0)) setStep('urgency');
+    // One question at a time: move on as the last blank is filled — but not
+    // when the manager has stepped back to change an answer already given.
+    if (wasIncomplete && next.every((item) => item.qty > 0)) setStep('urgency');
   };
 
   const finish = (urgency: RestockUrgency | null) => {
     const list = settled(items);
     setItems(list);
-    setStep('done');
-    onChange({ items: list, urgency, status: 'added' });
+    resolve(() => onChange({ items: list, urgency, status: 'added' }));
   };
 
   const dismiss = () =>
-  onChange({ items: request?.items ?? [], urgency: request?.urgency ?? null, status: 'dismissed' });
+  resolve(() =>
+  onChange({ items: request?.items ?? [], urgency: request?.urgency ?? null, status: 'dismissed' })
+  );
 
-  if (step === 'done' && request?.status === 'added') {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 4 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
-        className="group/restock flex items-start gap-2 rounded-lg border border-line bg-raised/40 px-3 py-2">
-
-        <span className="mt-0.5 shrink-0 rounded-md bg-raised px-1.5 py-0.5 text-label text-muted">
-          restock request
-        </span>
-        <p className="min-w-0 flex-1 text-meta text-txt">
-          {request.items.map((item) => `${item.name} ×${item.qty}`).join(', ')}
-          {request.urgency &&
-          <>
-              <span className="px-1.5 text-faint">·</span>
-              <span className="text-muted">{lowerFirst(request.urgency)}</span>
-            </>
-          }
-        </p>
-        <div className="flex shrink-0 items-center gap-0.5">
-          <button
-            type="button"
-            aria-label="Edit restock request"
-            onClick={() => {
-              setItems(request.items.map((item) => ({ ...item })));
-              setStep('quantities');
-            }}
-            className="rounded-md p-2 text-faint outline-none transition-[opacity,color] duration-150 ease-out hover:text-txt focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-teal dt:p-1 dt:opacity-0 dt:group-hover/restock:opacity-100">
-
-            <PencilIcon size={14} strokeWidth={2} />
-          </button>
-          <button
-            type="button"
-            aria-label="Remove restock request"
-            onClick={dismiss}
-            className="rounded-md p-2 text-faint outline-none transition-[opacity,color] duration-150 ease-out hover:text-txt focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-teal dt:p-1 dt:opacity-0 dt:group-hover/restock:opacity-100">
-
-            <XIcon size={14} strokeWidth={2} />
-          </button>
-        </div>
-      </motion.div>);
-
-  }
+  // A card reopened to change an existing request starts on the quantities,
+  // so there is no opening question behind them to go back to.
+  const back =
+  step === 'urgency' ?
+  () => setStep('quantities') :
+  step === 'quantities' && !editing ?
+  () => setStep('ask') :
+  null;
 
   return (
     <motion.aside
       aria-label="Suggestion"
       initial={{ opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
+      animate={{ opacity: leaving ? 0 : 1, y: 0 }}
       transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
-      className="rounded-lg border border-line bg-raised/40 px-3.5 py-3">
+      className="rounded-xl border border-line bg-card p-4">
 
       <p className="mb-2 flex items-center gap-1.5 text-label font-medium uppercase tracking-wide text-faint">
         <SparklesIcon size={13} strokeWidth={2} />
@@ -137,11 +120,16 @@ export function RestockFollowUp({ suggestedItems, request, onChange }: RestockFo
       {step === 'quantities' &&
       <>
           <p className="text-body text-txt">How many bottles?</p>
-          <div className="mt-3 space-y-2">
+          <div className="mt-3 space-y-3">
             {items.map((item) =>
-          <div key={item.name} className="flex flex-wrap items-center gap-1.5">
-                <span className="w-24 shrink-0 truncate text-meta text-muted">{item.name}</span>
-                {RESTOCK_QUANTITIES.map((qty) =>
+          <div key={item.name}>
+                {/* One item needs no naming — the question above already asks
+                    about it. Several, and each row says which it answers. */}
+                {items.length > 1 &&
+            <p className="mb-1.5 text-meta text-muted">{item.name}</p>
+            }
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {RESTOCK_QUANTITIES.map((qty) =>
             <button
               key={qty}
               type="button"
@@ -187,10 +175,11 @@ export function RestockFollowUp({ suggestedItems, request, onChange }: RestockFo
                 inputMode="numeric"
                 value={otherValue}
                 onChange={(e) => setOtherValue(e.target.value)}
-                className="w-16 rounded-lg border border-line bg-card px-2 py-1.5 text-meta text-txt caret-teal outline-none transition-colors duration-150 ease-out placeholder:text-faint focus:border-teal" />
+                className="w-16 rounded-lg border border-line bg-raised px-2 py-1.5 text-meta text-txt caret-teal outline-none transition-colors duration-150 ease-out placeholder:text-faint focus:border-teal" />
 
                   </form>
             }
+                </div>
               </div>
           )}
           </div>
@@ -217,13 +206,24 @@ export function RestockFollowUp({ suggestedItems, request, onChange }: RestockFo
       }
 
       {step !== 'ask' &&
-      <div className="mt-3 flex justify-end">
+      <div className="mt-3 flex items-center justify-between gap-2">
+          {back ?
+        <button type="button" onClick={back} className={FOOT_BUTTON}>
+              Back
+            </button> :
+
+        <span />
+        }
           <button
           type="button"
-          onClick={() => step === 'quantities' ? setStep('urgency') : finish(null)}
-          className="rounded-md px-1.5 py-0.5 text-label text-faint outline-none transition-colors duration-150 ease-out hover:text-muted focus-visible:ring-2 focus-visible:ring-teal">
+          onClick={() =>
+          step === 'quantities' ? setStep('urgency') : finish(request?.urgency ?? null)
+          }
+          className={FOOT_BUTTON}>
 
-            Skip
+            {/* Nothing left to skip once every item has a number — from here
+                the button is just the way on to the last question. */}
+            {step === 'quantities' && items.every((item) => item.qty > 0) ? 'Next' : 'Skip'}
           </button>
         </div>
       }
