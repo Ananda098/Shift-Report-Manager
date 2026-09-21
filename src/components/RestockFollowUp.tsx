@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { PencilIcon, SparklesIcon, XIcon } from 'lucide-react';
 import { RestockItem, RestockRequest, RestockUrgency } from '../types/report';

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { XIcon } from 'lucide-react';
+import { RecordButton } from './RecordButton';
 
 interface DrawerShellProps {
   /** Changing this crossfades the contents; the shell itself stays put. */
@@ -9,10 +10,11 @@ interface DrawerShellProps {
   children: React.ReactNode;
 }
 
-/** The one side drawer. "New incident", every "Add information" and "Edit
-    note" render inside this shell, so they share a width, a header, a footer
-    height and one scroll region. Opening a different drawer while one is up
-    swaps the contents in place — the shell never slides out and back in. */
+/** The one side panel. "New incident", every "Add information", "Edit note"
+    and the incident preview render inside this shell, so they share a width,
+    a header, a footer height and one scroll region. Opening a different one
+    while one is up swaps the contents in place — the shell never slides out
+    and back in. */
 export function DrawerShell({ contentKey, ariaLabel, children }: DrawerShellProps) {
   const reduceMotion = useReducedMotion();
   const slide = reduceMotion ?
@@ -45,24 +47,34 @@ export function DrawerShell({ contentKey, ariaLabel, children }: DrawerShellProp
 
 }
 
-/** Scrollable region of the drawer: title, close button, then the fields. */
+/** Scrollable region of the drawer: title, close button, then the fields.
+    `eyebrow` sits above the title (the preview's tier badge), `subtitle`
+    below it — the close button stays pinned to the same corner either way. */
 export function DrawerBody({
   title,
+  eyebrow,
+  subtitle,
   onClose,
   children
 
 
 
-}: {title: string;onClose: () => void;children: React.ReactNode;}) {
+
+
+}: {title: React.ReactNode;eyebrow?: React.ReactNode;subtitle?: React.ReactNode;onClose: () => void;children: React.ReactNode;}) {
   return (
     <div className="scroll-slim flex-1 overflow-y-auto px-5 py-5">
       <div className="mb-3 flex items-start justify-between gap-3">
-        <h2 className="text-section font-semibold text-txt">{title}</h2>
+        <div className="min-w-0">
+          {eyebrow && <div className="mb-2.5">{eyebrow}</div>}
+          <h2 className="text-section font-semibold text-txt">{title}</h2>
+          {subtitle && <p className="mt-1 text-meta text-muted">{subtitle}</p>}
+        </div>
         <button
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="-mr-1 rounded-md p-1 text-faint outline-none transition-colors duration-150 ease-out hover:text-txt focus-visible:ring-2 focus-visible:ring-teal">
+          className="-mr-1 shrink-0 rounded-md p-1 text-faint outline-none transition-colors duration-150 ease-out hover:text-txt focus-visible:ring-2 focus-visible:ring-teal">
 
           <XIcon size={17} strokeWidth={2} />
         </button>
@@ -72,17 +84,18 @@ export function DrawerBody({
 
 }
 
-/** Fixed-height footer: "Cancel" on the left, the primary/Record action on
-    the right. Same box in every drawer, so nothing shifts on a swap. */
+/** Fixed-height footer: what you're leaving behind on the left, what you're
+    doing next on the right. Same box in every drawer, so nothing shifts on
+    a swap. */
 export function DrawerFooter({ children }: {children: React.ReactNode;}) {
   return (
-    <div className="flex h-16 shrink-0 items-center justify-between gap-3 border-t border-line bg-card px-4">
+    <div className="flex h-16 shrink-0 items-center justify-between gap-2 border-t border-line bg-card px-4">
       {children}
     </div>);
 
 }
 
-/** The shared "Cancel" button every drawer footer opens with. */
+/** The shared "Cancel" every editable drawer footer opens with. */
 export function DrawerCancel({ onClick }: {onClick: () => void;}) {
   return (
     <button
@@ -93,4 +106,117 @@ export function DrawerCancel({ onClick }: {onClick: () => void;}) {
       Cancel
     </button>);
 
+}
+
+/** The solid action a drawer footer ends with. One box in every drawer; the
+    short label takes over at phone width, and whenever `compact` is set, so
+    a long label never squeezes the rest of the footer. */
+export function DrawerPrimary({
+  label,
+  shortLabel,
+  trailingIcon,
+  disabled = false,
+  compact = false,
+  onClick
+
+
+
+
+
+
+
+}: {label: string;shortLabel?: string;trailingIcon?: React.ReactNode;disabled?: boolean;compact?: boolean;onClick: () => void;}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={[
+      'inline-flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg bg-teal px-4 text-meta font-medium text-teal-ink outline-none',
+      'transition-[opacity,background-color] duration-150 ease-out hover:bg-teal-hi',
+      'focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-card',
+      'disabled:pointer-events-none disabled:opacity-40'].
+      join(' ')}>
+
+      {shortLabel ?
+      compact ?
+      shortLabel :
+      <>
+            <span className="dt:hidden">{shortLabel}</span>
+            <span className="hidden dt:inline">{label}</span>
+          </> :
+
+      label
+      }
+      {trailingIcon}
+    </button>);
+
+}
+
+/** Every editable drawer's right-hand pair: Record, then the primary. Both
+    are always on screen, so the footer never reflows — only the emphasis
+    moves. Nothing entered yet: Record is the filled button and the primary
+    waits, greyed out. Something entered: the primary goes solid and Record
+    steps back to a quiet "record some more". Mid-take: the primary is out of
+    reach until the transcript lands, and yields to its short label so the
+    running timer always has room. */
+export function DrawerActions({
+  recording,
+  recordDisabled,
+  onStartRecord,
+  onStopRecord,
+  primaryLabel,
+  primaryShortLabel,
+  primaryDisabled,
+  onPrimary
+
+
+
+
+
+
+
+
+}: {recording: boolean;recordDisabled?: boolean;onStartRecord: () => void;onStopRecord: () => void;primaryLabel: string;primaryShortLabel?: string;primaryDisabled: boolean;onPrimary: () => void;}) {
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      <RecordButton
+        recording={recording}
+        disabled={recordDisabled}
+        secondary={!primaryDisabled}
+        onStart={onStartRecord}
+        onStop={onStopRecord} />
+
+      <DrawerPrimary
+        label={primaryLabel}
+        shortLabel={primaryShortLabel}
+        disabled={primaryDisabled}
+        compact={recording}
+        onClick={onPrimary} />
+
+    </div>);
+
+}
+
+/** A drawer's recording state, mirrored up to the shell so nothing else on
+    the page can start a second take — and so a drawer closed mid-recording
+    releases the microphone on its way out. */
+export function useDrawerRecording(onRecordingChange: (recording: boolean) => void) {
+  const [recording, setRecording] = useState(false);
+  const report = useRef(onRecordingChange);
+  report.current = onRecordingChange;
+
+  useEffect(() => () => report.current(false), []);
+
+  const start = useCallback(() => {
+    setRecording(true);
+    report.current(true);
+  }, []);
+
+  const stop = useCallback(() => {
+    setRecording(false);
+    report.current(false);
+  }, []);
+
+  return { recording, start, stop };
 }

@@ -1,4 +1,3 @@
-import React from 'react';
 import { ReviewIncident } from '../types/report';
 import { sortForQueue } from '../utils/reviewActions';
 import { TIER_LABEL } from './TierBadge';

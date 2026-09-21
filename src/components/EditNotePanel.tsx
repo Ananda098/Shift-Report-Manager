@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { NoteEntry } from '../types/report';
 import { DismissDialog } from './DismissDialog';
-import { DrawerBody, DrawerCancel, DrawerFooter } from './DrawerShell';
+import { DrawerBody, DrawerCancel, DrawerFooter, DrawerPrimary } from './DrawerShell';
 
 interface EditNotePanelProps {
   note: NoteEntry;
@@ -69,14 +69,14 @@ export function EditNotePanel({
 
       <DrawerFooter>
         <DrawerCancel onClick={requestClose} />
-        <button
-          type="button"
-          onClick={handleSave}
+        {/* No Record here — there is nothing to dictate into an existing
+            note, so this drawer ends with the primary on its own. */}
+        <DrawerPrimary
+          label="Save note"
+          shortLabel="Save"
           disabled={!draft.trim()}
-          className="h-10 rounded-lg bg-teal px-4 text-meta font-medium text-teal-ink outline-none transition-colors duration-150 ease-out hover:bg-teal-hi focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:pointer-events-none disabled:opacity-40">
+          onClick={handleSave} />
 
-          Save note
-        </button>
       </DrawerFooter>
 
       <AnimatePresence>

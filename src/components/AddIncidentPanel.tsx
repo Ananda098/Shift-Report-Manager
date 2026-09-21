@@ -1,13 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Evidence, Tier } from '../types/report';
-import { RecordButton } from './RecordButton';
 import { InlineEditable } from './InlineEditable';
 import { HighlightText } from './HighlightText';
 import { TierMenu } from './TierMenu';
 import { EvidenceSection } from './EvidenceSection';
 import { DismissDialog } from './DismissDialog';
-import { DrawerBody, DrawerCancel, DrawerFooter } from './DrawerShell';
+import {
+  DrawerActions,
+  DrawerBody,
+  DrawerCancel,
+  DrawerFooter,
+  useDrawerRecording } from
+'./DrawerShell';
 
 /** Everything the manager has entered so far. Lives in the shell, so
     swapping to another drawer and back leaves the half-filled form intact. */
@@ -58,6 +63,9 @@ interface AddIncidentPanelProps {
   onChangeDraft: (updater: (draft: IncidentDraft) => IncidentDraft) => void;
   /** Bumped when the already-open drawer's trigger is clicked again. */
   focusPulse: number;
+  /** Something else on the page is recording — this drawer's mic waits its turn. */
+  recordDisabled?: boolean;
+  onRecordingChange: (recording: boolean) => void;
   onClose: () => void;
   onAdd: (draft: IncidentDraft) => void;
 }
@@ -99,10 +107,12 @@ export function AddIncidentPanel({
   draft,
   onChangeDraft,
   focusPulse,
+  recordDisabled,
+  onRecordingChange,
   onClose,
   onAdd
 }: AddIncidentPanelProps) {
-  const [recording, setRecording] = useState(false);
+  const { recording, start: startRecording, stop: stopRecording } = useDrawerRecording(onRecordingChange);
   const [discardOpen, setDiscardOpen] = useState(false);
 
   const { tier, tierByAI, type, time, timeApprox, location, parties, summary, evidence, filled, expanded } = draft;
@@ -121,7 +131,7 @@ export function AddIncidentPanel({
   onChangeDraft((prev) => ({ ...prev, filled: [...prev.filled, key] }));
 
   const handleStop = () => {
-    setRecording(false);
+    stopRecording();
     const steps: (() => void)[] = [
     () => {
       onChangeDraft((prev) => ({ ...prev, type: 'Ejection' }));
@@ -354,22 +364,16 @@ export function AddIncidentPanel({
 
       <DrawerFooter>
         <DrawerCancel onClick={requestClose} />
-
-        {expanded ?
-        <button
-          type="button"
-          onClick={handleAdd}
-          className="h-10 rounded-lg bg-teal px-4 text-meta font-medium text-teal-ink outline-none transition-colors duration-150 ease-out hover:bg-teal-hi focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-card">
-
-            Add incident
-          </button> :
-
-        <RecordButton
+        <DrawerActions
           recording={recording}
-          onStart={() => setRecording(true)}
-          onStop={handleStop} />
+          recordDisabled={recordDisabled}
+          onStartRecord={startRecording}
+          onStopRecord={handleStop}
+          primaryLabel="Add incident"
+          primaryShortLabel="Add"
+          primaryDisabled={!hasData || recording}
+          onPrimary={handleAdd} />
 
-        }
       </DrawerFooter>
 
       <AnimatePresence>

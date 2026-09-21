@@ -1,4 +1,3 @@
-import React from 'react';
 import { ReviewIncident } from '../types/report';
 import { HighlightText } from './HighlightText';
 import { TierBadge } from './TierBadge';

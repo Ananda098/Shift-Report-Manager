@@ -42,6 +42,9 @@ interface NotesCardProps {
   notes: NoteEntry[];
   /** The note whose "Edit note" drawer is currently showing, if any. */
   activeNoteId: string | null;
+  /** A drawer is already recording — one microphone at a time. */
+  recordDisabled?: boolean;
+  onRecordingChange: (recording: boolean) => void;
   onEditNote: (noteId: string) => void;
 }
 
@@ -54,6 +57,8 @@ export function NotesCard({
   onAddToReport,
   notes,
   activeNoteId,
+  recordDisabled,
+  onRecordingChange,
   onEditNote
 }: NotesCardProps) {
   const [ghost, setGhost] = useState<Ghost | null>(null);
@@ -154,6 +159,7 @@ export function NotesCard({
 
   const handleStop = () => {
     setRecording(false);
+    onRecordingChange(false);
     clearPause();
     setGhost(null);
 
@@ -192,7 +198,9 @@ export function NotesCard({
   const visibleNotes = showAllNotes ? notes : notes.slice(0, VISIBLE_NOTES);
 
   return (
-    <div className="rounded-xl border border-line bg-card">
+    // Deliberately not a report card: the composer sits on the raised input
+    // surface, so the sections below read as the document it writes into.
+    <div className="rounded-xl border border-line bg-raised transition-colors duration-150 ease-out focus-within:border-teal/60">
       <div className="px-4 py-3.5 dt:px-5 dt:py-4">
         {showTranscriptView ?
         <p
@@ -273,7 +281,7 @@ export function NotesCard({
             'inline-flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-4 text-meta font-medium outline-none',
             'bg-teal text-teal-ink hover:bg-teal-hi',
             'transition-[opacity,background-color] duration-150 ease-out',
-            'focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-card',
+            'focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-raised',
             hasContent ? canPush ? 'opacity-100' : 'pointer-events-none opacity-40' : 'pointer-events-none opacity-0'].
             join(' ')}>
 
@@ -283,12 +291,13 @@ export function NotesCard({
           </button>
           <RecordButton
             recording={recording}
-            disabled={typing}
+            disabled={typing || recordDisabled}
             secondary={hasContent}
             onStart={() => {
               clearPause();
               setGhost(null);
               setRecording(true);
+              onRecordingChange(true);
             }}
             onStop={handleStop} />
 
@@ -316,8 +325,8 @@ export function NotesCard({
           <li
             key={note.id}
             className={[
-            'group flex items-center justify-between gap-3 rounded-lg px-2 py-1.5 transition-colors duration-150 ease-out hover:bg-raised',
-            activeNoteId === note.id ? 'bg-raised' : ''].
+            'group flex items-center justify-between gap-3 rounded-lg px-2 py-1.5 transition-colors duration-150 ease-out hover:bg-card',
+            activeNoteId === note.id ? 'bg-card' : ''].
             join(' ')}>
 
                 <div className="min-w-0 flex-1">

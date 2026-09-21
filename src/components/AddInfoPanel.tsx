@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { MicIcon } from 'lucide-react';
 import { SectionQuestion } from '../utils/mockAi';
-import { RecordButton } from './RecordButton';
 import { InlineEditable } from './InlineEditable';
 import { HighlightText } from './HighlightText';
 import { DismissDialog } from './DismissDialog';
-import { DrawerBody, DrawerCancel, DrawerFooter } from './DrawerShell';
+import {
+  DrawerActions,
+  DrawerBody,
+  DrawerCancel,
+  DrawerFooter,
+  useDrawerRecording } from
+'./DrawerShell';
 
 /** One section's unsaved answers. Held by the shell, keyed by section, so
     swapping between sections never drops what was typed. */
@@ -35,6 +39,9 @@ interface AddInfoPanelProps {
   focusPulse: number;
   /** The section already has statements — swaps the primary label to "Update". */
   hasExistingContent: boolean;
+  /** Something else on the page is recording — this drawer's mic waits its turn. */
+  recordDisabled?: boolean;
+  onRecordingChange: (recording: boolean) => void;
   onClose: () => void;
   onAdd: (rows: {chip: string;text: string;}[]) => void;
 }
@@ -72,10 +79,12 @@ export function AddInfoPanel({
   onChangeDraft,
   focusPulse,
   hasExistingContent,
+  recordDisabled,
+  onRecordingChange,
   onClose,
   onAdd
 }: AddInfoPanelProps) {
-  const [recording, setRecording] = useState(false);
+  const { recording, start: startRecording, stop: stopRecording } = useDrawerRecording(onRecordingChange);
   const [discardOpen, setDiscardOpen] = useState(false);
 
   const { answers, recordedChips } = draft;
@@ -92,7 +101,7 @@ export function AddInfoPanel({
   // Fills whichever rows are still empty — content the manager already typed
   // or that came prefilled from an earlier answer is left alone.
   const handleStop = () => {
-    setRecording(false);
+    stopRecording();
     const emptyIndexes = questions.map((_, i) => i).filter((i) => !answers[i].trim());
     emptyIndexes.forEach((qIndex, step) => {
       window.setTimeout(() => {
@@ -147,32 +156,16 @@ export function AddInfoPanel({
 
       <DrawerFooter>
         <DrawerCancel onClick={requestClose} />
-
-        {!hasData || recording ?
-        <RecordButton
+        <DrawerActions
           recording={recording}
-          onStart={() => setRecording(true)}
-          onStop={handleStop} /> :
+          recordDisabled={recordDisabled}
+          onStartRecord={startRecording}
+          onStopRecord={handleStop}
+          primaryLabel={hasExistingContent ? 'Update information' : 'Add information'}
+          primaryShortLabel={hasExistingContent ? 'Update' : 'Add'}
+          primaryDisabled={!hasData || recording}
+          onPrimary={handleAdd} />
 
-
-        <div className="flex items-center gap-2">
-            <button
-            type="button"
-            onClick={() => setRecording(true)}
-            aria-label="Record more"
-            className="flex h-10 w-10 items-center justify-center rounded-lg text-teal outline-none transition-colors duration-150 ease-out hover:bg-teal-fill focus-visible:ring-2 focus-visible:ring-teal">
-
-              <MicIcon size={16} strokeWidth={2} />
-            </button>
-            <button
-            type="button"
-            onClick={handleAdd}
-            className="h-10 rounded-lg bg-teal px-4 text-meta font-medium text-teal-ink outline-none transition-colors duration-150 ease-out hover:bg-teal-hi focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-card">
-
-              {hasExistingContent ? 'Update information' : 'Add information'}
-            </button>
-          </div>
-        }
       </DrawerFooter>
 
       <AnimatePresence>

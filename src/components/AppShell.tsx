@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import {
   NoteEntry,
@@ -30,7 +30,8 @@ import { IncidentPreviewPanel } from './IncidentPreviewPanel';
 import {
   AddIncidentPanel,
   EMPTY_INCIDENT_DRAFT,
-  IncidentDraft } from
+  IncidentDraft,
+  incidentDraftHasData } from
 './AddIncidentPanel';
 import { AddInfoPanel, emptyInfoDraft, InfoDraft, infoDraftIsDirty } from './AddInfoPanel';
 import { DrawerShell } from './DrawerShell';
@@ -101,6 +102,9 @@ export function AppShell({
   const [newStatementIds, setNewStatementIds] = useState<string[]>([]);
   const [currentReviewId, setCurrentReviewId] = useState<string | null>(null);
   const [visibleToasts, setVisibleToasts] = useState(0);
+  // One microphone on the page: whoever is mid-take owns it, and every other
+  // Record button greys out until they stop.
+  const [recordingIn, setRecordingIn] = useState<'notes' | 'drawer' | null>(null);
 
   // One drawer at a time, plus the unsaved draft of every drawer that has
   // been opened — swapping the shell's contents never throws input away.
@@ -133,8 +137,18 @@ export function AppShell({
 
   const reviewedCount = incidents.filter((incident) => incident.status !== 'pending').length;
   const allReviewed = reviewedCount === incidents.length;
-  // One primary per screen: anything layered on top takes the primary slot.
-  const panelOwnsPrimary = drawer?.kind === 'incident' && incidentDraft.expanded;
+
+  // One primary per screen: the side panel takes the slot as soon as its own
+  // primary goes live — which for a drawer means it has something to commit.
+  const drawerOwnsPrimary =
+  drawer?.kind === 'incident' ?
+  incidentDraftHasData(incidentDraft) :
+  drawer?.kind === 'info' && drawerSection ?
+  (infoDrafts[drawerSection.id] ?? emptyInfoDraft(infoBaselineFor(drawerSection))).answers.some((a) => a.trim()) :
+  drawer?.kind === 'note' && drawerNote ?
+  Boolean((noteDrafts[drawerNote.id] ?? drawerNote.text).trim()) :
+  false;
+  const panelOwnsPrimary = Boolean(openIncident) || drawerOwnsPrimary;
   const demotePagePrimaries = panelOwnsPrimary || visibleToasts > 0;
 
   /** Opening a drawer while another is up swaps the contents in place.
@@ -517,6 +531,14 @@ export function AppShell({
     setManuallyEditedIds((prev) => new Set(prev).add(id));
   };
 
+  /** The right-hand slot holds one thing at a time: the preview if an
+      incident is open, otherwise whichever drawer is up. */
+  const sidePanelKey = openIncident ?
+  `preview-${openIncident.id}` :
+  drawer ?
+  drawerKey(drawer) :
+  null;
+
   const marginItems: MarginRailItem[] = [];
   if (!openIncident && !drawer && openStatement) {
     marginItems.push({
@@ -567,6 +589,8 @@ export function AppShell({
                 onAddToReport={handlePushNotes}
                 notes={notes}
                 activeNoteId={drawer?.kind === 'note' ? drawer.noteId : null}
+                recordDisabled={recordingIn === 'drawer'}
+                onRecordingChange={(recording) => setRecordingIn(recording ? 'notes' : null)}
                 onEditNote={(noteId) => openDrawer({ kind: 'note', noteId })} />
 
             </div>
@@ -623,35 +647,40 @@ export function AppShell({
         </div>
       </main>
 
+      {/* The preview and the drawers share one shell, so moving between them
+          crossfades in place instead of sliding the panel out and back. */}
       <AnimatePresence>
-        {openIncident &&
-        <IncidentPreviewPanel
-          key={openIncident.id}
-          incident={openIncident}
-          onClose={() => setOpenIncidentId(null)}
-          onEditInReview={(incident) => {
-            setOpenIncidentId(null);
-            openReview(incident.id);
-          }} />
-
-        }
-        {drawer &&
+        {sidePanelKey &&
         <DrawerShell
-          key="drawer"
-          contentKey={drawerKey(drawer)}
+          key="side-panel"
+          contentKey={sidePanelKey}
           ariaLabel={
-          drawer.kind === 'incident' ?
+          openIncident ?
+          `${openIncident.type} preview` :
+          drawer?.kind === 'incident' ?
           'New incident' :
-          drawer.kind === 'info' ?
+          drawer?.kind === 'info' ?
           drawerSection?.title ?? 'Add information' :
           'Edit note'
           }>
 
-            {drawer.kind === 'incident' &&
+            {openIncident &&
+          <IncidentPreviewPanel
+            incident={openIncident}
+            onClose={() => setOpenIncidentId(null)}
+            onEditInReview={(incident) => {
+              setOpenIncidentId(null);
+              openReview(incident.id);
+            }} />
+
+          }
+            {!openIncident && drawer?.kind === 'incident' &&
           <AddIncidentPanel
             draft={incidentDraft}
             onChangeDraft={setIncidentDraft}
             focusPulse={focusPulse}
+            recordDisabled={recordingIn === 'notes'}
+            onRecordingChange={(recording) => setRecordingIn(recording ? 'drawer' : null)}
             onClose={() => {
               closeDrawer();
               clearIncidentDraft();
@@ -659,7 +688,7 @@ export function AppShell({
             onAdd={handleAddIncident} />
 
           }
-            {drawer.kind === 'info' && drawerSection && (() => {
+            {!openIncident && drawer?.kind === 'info' && drawerSection && (() => {
             const baseline = infoBaselineFor(drawerSection);
             return (
               <AddInfoPanel
@@ -670,6 +699,8 @@ export function AppShell({
                 onChangeDraft={changeInfoDraft(drawerSection.id, baseline)}
                 focusPulse={focusPulse}
                 hasExistingContent={drawerSection.statements.length > 0}
+                recordDisabled={recordingIn === 'notes'}
+                onRecordingChange={(recording) => setRecordingIn(recording ? 'drawer' : null)}
                 onClose={() => {
                   closeDrawer();
                   clearInfoDraft(drawerSection.id);
@@ -678,7 +709,7 @@ export function AppShell({
 
 
           })()}
-            {drawer.kind === 'note' && drawerNote &&
+            {!openIncident && drawer?.kind === 'note' && drawerNote &&
           <EditNotePanel
             note={drawerNote}
             draft={noteDrafts[drawerNote.id] ?? drawerNote.text}

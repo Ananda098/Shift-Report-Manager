@@ -1,4 +1,3 @@
-import React from 'react';
 import { ReviewIncident, Tier } from '../types/report';
 import { InlineEditable } from './InlineEditable';
 import { TierMenu } from './TierMenu';

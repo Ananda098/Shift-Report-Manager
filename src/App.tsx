@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ReviewIncident } from './types/report';
 import { incidents as seedIncidents } from './data/incidents';
 import { AppShell } from './components/AppShell';

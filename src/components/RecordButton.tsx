@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MicIcon } from 'lucide-react';
 
 interface RecordButtonProps {
@@ -32,7 +32,7 @@ export function RecordButton({ recording, disabled, secondary, onStart, onStop }
   if (recording) {
     return (
       <div className="flex items-center gap-3">
-        <div className="flex h-10 items-center gap-2 rounded-lg bg-raised px-3">
+        <div className="flex h-10 items-center gap-2 rounded-lg border border-line bg-raised px-3">
           <span className="relative flex h-2 w-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-tier-t3 opacity-60" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-tier-t3" />

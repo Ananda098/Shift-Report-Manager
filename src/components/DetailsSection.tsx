@@ -1,4 +1,3 @@
-import React from 'react';
 import { SearchIcon } from 'lucide-react';
 import { DetailRow } from '../types/report';
 import { InlineEditable } from './InlineEditable';

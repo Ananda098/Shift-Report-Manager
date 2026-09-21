@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { PlayIcon } from 'lucide-react';
 import { HistoryEntry } from '../types/report';
 import { Avatar } from './Avatar';

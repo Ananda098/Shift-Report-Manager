@@ -1,4 +1,3 @@
-import React from 'react';
 import { Person } from '../types/report';
 import { Avatar } from './Avatar';
 

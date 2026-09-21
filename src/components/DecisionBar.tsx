@@ -1,4 +1,3 @@
-import React from 'react';
 import { ReviewStatus } from '../types/report';
 
 interface DecisionBarProps {
