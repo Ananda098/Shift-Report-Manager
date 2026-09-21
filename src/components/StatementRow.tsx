@@ -1,0 +1,182 @@
+import React, { useEffect, useRef, useState } from 'react';
+import { SearchIcon } from 'lucide-react';
+import { Statement } from '../types/report';
+import { HighlightText } from './HighlightText';
+
+interface StatementRowProps {
+  statement: Statement;
+  active: boolean;
+  /** A help card is anchored to this statement — mark the text like a commented range. */
+  commented?: boolean;
+  /** Character index from which newly added text is briefly highlighted. */
+  highlightFrom?: number | null;
+  /** Briefly tints automatically assigned chips. */
+  chipHighlight?: boolean;
+  onOpenSource: (statement: Statement) => void;
+  onChangeText: (id: string, text: string) => void;
+  onDelete: (id: string) => void;
+}
+
+export function StatementRow({
+  statement,
+  active,
+  commented = false,
+  highlightFrom = null,
+  chipHighlight = false,
+  onOpenSource,
+  onChangeText,
+  onDelete
+}: StatementRowProps) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(statement.text);
+  const [highlightFading, setHighlightFading] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (!editing) return;
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [editing, draft]);
+
+  useEffect(() => {
+    if (!editing) return;
+    const el = textareaRef.current;
+    if (!el) return;
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length);
+  }, [editing]);
+
+  useEffect(() => {
+    if (highlightFrom == null) return;
+    setHighlightFading(false);
+    const id = window.setTimeout(() => setHighlightFading(true), 1500);
+    return () => window.clearTimeout(id);
+  }, [highlightFrom, statement.text]);
+
+  const startEditing = () => {
+    setDraft(statement.text);
+    setEditing(true);
+  };
+
+  const save = () => {
+    setEditing(false);
+    const next = draft.trim();
+    if (!next) {
+      onDelete(statement.id);
+      return;
+    }
+    if (next !== statement.text) onChangeText(statement.id, next);
+  };
+
+  const cancel = () => {
+    setDraft(statement.text);
+    setEditing(false);
+  };
+
+  return (
+    <li
+      id={`statement-${statement.id}`}
+      className={[
+      'group relative rounded-lg border px-3 py-2.5 pr-10 transition-colors duration-150 ease-out',
+      editing ? 'border-teal bg-teal-fill/30' : 'border-transparent hover:bg-raised'].
+      join(' ')}>
+      
+      {active && !editing &&
+      <span aria-hidden className="absolute inset-y-1 left-0 w-0.5 rounded-full bg-teal" />
+      }
+
+      <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
+        {statement.chips.map((chip) =>
+        <span
+          key={chip}
+          className="rounded-md border border-transparent bg-raised px-1.5 py-0.5 text-label text-muted">
+          
+            <HighlightText active={chipHighlight}>{chip}</HighlightText>
+          </span>
+        )}
+        <button
+          type="button"
+          className="rounded-md border border-dashed border-line px-1.5 py-0.5 text-label text-faint opacity-0 outline-none transition-[opacity,color] duration-150 ease-out hover:text-muted focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-teal group-hover:opacity-100">
+          
+          + tag
+        </button>
+      </div>
+
+      {editing ?
+      <>
+          <label htmlFor={`statement-input-${statement.id}`} className="sr-only">
+            Edit statement
+          </label>
+          <textarea
+          id={`statement-input-${statement.id}`}
+          ref={textareaRef}
+          rows={1}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={save}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              save();
+            }
+            if (e.key === 'Escape') {
+              e.preventDefault();
+              cancel();
+            }
+          }}
+          className="block w-full resize-none overflow-hidden bg-transparent text-body text-txt caret-teal outline-none" />
+        
+        </> :
+
+      <p
+        tabIndex={0}
+        role="button"
+        onClick={startEditing}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            startEditing();
+          }
+        }}
+        className={[
+        'cursor-text rounded-sm text-body text-txt outline-none focus-visible:ring-2 focus-visible:ring-teal',
+        commented ? 'underline decoration-teal/60 decoration-2 underline-offset-[5px]' : ''].
+        join(' ')}>
+        
+          {highlightFrom == null ?
+        statement.text :
+
+        <>
+              {statement.text.slice(0, highlightFrom)}
+              <span
+            className={[
+            'transition-colors duration-300 ease-out',
+            highlightFading ? 'text-txt' : 'text-teal'].
+            join(' ')}>
+            
+                {statement.text.slice(highlightFrom)}
+              </span>
+            </>
+        }
+        </p>
+      }
+
+      <button
+        type="button"
+        aria-label="Where this came from"
+        onClick={() => onOpenSource(statement)}
+        className={[
+        'absolute right-2 top-2 rounded-md p-1.5 outline-none transition-[opacity,color] duration-150 ease-out',
+        'focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-teal',
+        active ?
+        'text-teal opacity-100' :
+        'text-faint opacity-0 hover:text-txt group-hover:opacity-100'].
+        join(' ')}>
+        
+        <SearchIcon size={15} strokeWidth={2} />
+      </button>
+    </li>);
+
+}
