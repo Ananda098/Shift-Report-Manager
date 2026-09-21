@@ -13,7 +13,8 @@ export function ReviewTopBar({ saving, onBack }: ReviewTopBarProps) {
         Incidents
         <span className="hidden dt:inline">
           {' '}
-          <span className="text-faint">·</span> <span className="text-muted">Sat 20 Sep</span>
+          <span className="text-faint">·</span>{' '}
+          <span className="font-semibold text-muted">Sat 20/09 - Sun 21/09</span>
         </span>
       </p>
 
