@@ -24,7 +24,7 @@ export function ReviewTopBar({ saving, onBack }: ReviewTopBarProps) {
           type="button"
           onClick={onBack}
           aria-label="Back to report"
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3 text-meta text-muted outline-none transition-colors duration-150 ease-out hover:border-faint hover:text-txt focus-visible:ring-2 focus-visible:ring-teal">
+          className="inline-flex h-11 items-center gap-1.5 rounded-lg border border-line px-3.5 text-meta dt:h-9 text-muted outline-none transition-colors duration-150 ease-out hover:border-faint hover:text-txt focus-visible:ring-2 focus-visible:ring-teal">
 
           <ArrowLeftIcon size={15} strokeWidth={2} />
           <span className="hidden dt:inline">Back to report</span>

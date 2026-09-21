@@ -1,17 +1,38 @@
-import React, { useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { XIcon, MicIcon } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { AnimatePresence } from 'framer-motion';
+import { MicIcon } from 'lucide-react';
 import { SectionQuestion } from '../utils/mockAi';
 import { RecordButton } from './RecordButton';
 import { InlineEditable } from './InlineEditable';
 import { HighlightText } from './HighlightText';
 import { DismissDialog } from './DismissDialog';
+import { DrawerBody, DrawerCancel, DrawerFooter } from './DrawerShell';
+
+/** One section's unsaved answers. Held by the shell, keyed by section, so
+    swapping between sections never drops what was typed. */
+export interface InfoDraft {
+  answers: string[];
+  /** Chips the mocked transcription filled, for the "from recording" tag. */
+  recordedChips: string[];
+}
+
+export function emptyInfoDraft(baseline: string[]): InfoDraft {
+  return { answers: baseline, recordedChips: [] };
+}
+
+export function infoDraftIsDirty(draft: InfoDraft, baseline: string[]): boolean {
+  return draft.answers.some((a, i) => a !== (baseline[i] ?? ''));
+}
 
 interface AddInfoPanelProps {
   sectionTitle: string;
   questions: SectionQuestion[];
-  /** Existing answers, one per question, prefilled from the section's current statements. */
-  initialAnswers: string[];
+  /** The section's current statements, one per question — what "dirty" is measured against. */
+  baseline: string[];
+  draft: InfoDraft;
+  onChangeDraft: (updater: (draft: InfoDraft) => InfoDraft) => void;
+  /** Bumped when the already-open drawer's trigger is clicked again. */
+  focusPulse: number;
   /** The section already has statements — swaps the primary label to "Update". */
   hasExistingContent: boolean;
   onClose: () => void;
@@ -46,21 +67,26 @@ function Row({
 export function AddInfoPanel({
   sectionTitle,
   questions,
-  initialAnswers,
+  baseline,
+  draft,
+  onChangeDraft,
+  focusPulse,
   hasExistingContent,
   onClose,
   onAdd
 }: AddInfoPanelProps) {
-  const [answers, setAnswers] = useState<string[]>(initialAnswers);
   const [recording, setRecording] = useState(false);
-  const [recordedChips, setRecordedChips] = useState<string[]>([]);
   const [discardOpen, setDiscardOpen] = useState(false);
 
+  const { answers, recordedChips } = draft;
   const hasData = answers.some((a) => a.trim().length > 0);
-  const isDirty = answers.some((a, i) => a !== initialAnswers[i]);
+  const isDirty = infoDraftIsDirty(draft, baseline);
 
   const setAnswer = (index: number, value: string) => {
-    setAnswers((prev) => prev.map((a, i) => i === index ? value : a));
+    onChangeDraft((prev) => ({
+      ...prev,
+      answers: prev.answers.map((a, i) => i === index ? value : a)
+    }));
   };
 
   // Fills whichever rows are still empty — content the manager already typed
@@ -70,40 +96,31 @@ export function AddInfoPanel({
     const emptyIndexes = questions.map((_, i) => i).filter((i) => !answers[i].trim());
     emptyIndexes.forEach((qIndex, step) => {
       window.setTimeout(() => {
-        setAnswer(qIndex, questions[qIndex].sampleAnswer);
-        setRecordedChips((prev) => [...prev, questions[qIndex].chip]);
+        onChangeDraft((prev) => ({
+          answers: prev.answers.map((a, i) => i === qIndex ? questions[qIndex].sampleAnswer : a),
+          recordedChips: [...prev.recordedChips, questions[qIndex].chip]
+        }));
       }, FILL_STEP_MS * (step + 1));
     });
   };
 
+  // Re-clicking this section's trigger while its drawer is up just puts the
+  // caret back in the first row.
+  useEffect(() => {
+    if (focusPulse > 0 && questions.length > 0) {
+      (document.getElementById(`input-${questions[0].chip}`) as HTMLElement | null)?.focus();
+    }
+  }, [focusPulse, questions]);
+
   const requestClose = () => isDirty ? setDiscardOpen(true) : onClose();
 
   const handleAdd = () => {
-    onAdd(questions.map((q, i) => ({ chip: q.chip, text: answers[i] })));
+    onAdd(questions.map((q, i) => ({ chip: q.chip, text: answers[i] ?? '' })));
   };
 
   return (
-    <motion.aside
-      aria-label={sectionTitle}
-      initial={{ x: 24, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      exit={{ x: 24, opacity: 0 }}
-      transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
-      className="absolute inset-y-0 right-0 z-30 flex w-full max-w-[440px] flex-col border-l border-line bg-card">
-
-      <div className="scroll-slim flex-1 overflow-y-auto px-5 py-5">
-        <div className="mb-3 flex items-start justify-between gap-3">
-          <h2 className="text-section font-semibold text-txt">{sectionTitle}</h2>
-          <button
-            type="button"
-            onClick={requestClose}
-            aria-label="Close"
-            className="-mr-1 rounded-md p-1 text-faint outline-none transition-colors duration-150 ease-out hover:text-txt focus-visible:ring-2 focus-visible:ring-teal">
-
-            <XIcon size={17} strokeWidth={2} />
-          </button>
-        </div>
-
+    <>
+      <DrawerBody title={sectionTitle} onClose={requestClose}>
         <div>
           {questions.map((question, index) =>
           <Row
@@ -112,7 +129,7 @@ export function AddInfoPanel({
             tag={recordedChips.includes(question.chip) ? 'from recording' : undefined}>
 
               <InlineEditable
-              value={answers[index]}
+              value={answers[index] ?? ''}
               onChange={(value) => setAnswer(index, value)}
               onDelete={() => setAnswer(index, '')}
               ariaLabel={question.label}
@@ -120,22 +137,16 @@ export function AddInfoPanel({
               placeholder={question.placeholder}>
 
                 <HighlightText active={recordedChips.includes(question.chip)}>
-                  {answers[index]}
+                  {answers[index] ?? ''}
                 </HighlightText>
               </InlineEditable>
             </Row>
           )}
         </div>
-      </div>
+      </DrawerBody>
 
-      <div className="flex shrink-0 items-center justify-between gap-3 border-t border-line bg-card px-4 py-3">
-        <button
-          type="button"
-          onClick={requestClose}
-          className="rounded-md px-2 py-1 text-meta text-muted outline-none transition-colors duration-150 ease-out hover:text-txt focus-visible:ring-2 focus-visible:ring-teal">
-
-          Cancel
-        </button>
+      <DrawerFooter>
+        <DrawerCancel onClick={requestClose} />
 
         {!hasData || recording ?
         <RecordButton
@@ -162,7 +173,7 @@ export function AddInfoPanel({
             </button>
           </div>
         }
-      </div>
+      </DrawerFooter>
 
       <AnimatePresence>
         {discardOpen &&
@@ -176,6 +187,6 @@ export function AddInfoPanel({
 
         }
       </AnimatePresence>
-    </motion.aside>);
+    </>);
 
 }

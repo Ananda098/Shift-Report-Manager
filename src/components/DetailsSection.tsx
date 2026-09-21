@@ -38,7 +38,7 @@ export function DetailsSection({
             <div
               key={row.id}
               id={`detail-${row.id}`}
-              className="group relative -mx-3 flex gap-4 rounded-lg px-3 py-2 pr-9 transition-colors duration-150 ease-out hover:bg-card">
+              className="group relative -mx-3 flex flex-col gap-1 rounded-lg px-3 py-2 pr-9 transition-colors duration-150 ease-out hover:bg-card dt:flex-row dt:gap-4">
               
               {active &&
               <span
@@ -46,7 +46,7 @@ export function DetailsSection({
                 className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-teal" />
 
               }
-              <span className="w-28 shrink-0 pt-1 text-label uppercase tracking-wide text-faint">
+              <span className="shrink-0 text-label uppercase tracking-wide text-faint dt:w-28 dt:pt-1">
                 {row.label}
               </span>
               <div className="min-w-0 flex-1 space-y-0.5">
@@ -80,11 +80,11 @@ export function DetailsSection({
                 aria-label={`Where the ${row.label.toLowerCase()} came from`}
                 onClick={() => onOpenSource(row.id)}
                 className={[
-                'absolute right-2 top-2.5 rounded-md p-1.5 outline-none transition-[opacity,color] duration-150 ease-out',
+                'absolute right-2 top-2.5 rounded-md p-2.5 outline-none transition-[opacity,color] duration-150 ease-out dt:p-1.5',
                 'focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-teal',
                 active ?
                 'text-teal opacity-100' :
-                'text-faint opacity-0 hover:text-txt group-hover:opacity-100'].
+                'text-faint opacity-100 hover:text-txt dt:opacity-0 dt:group-hover:opacity-100'].
                 join(' ')}>
                 
                   <SearchIcon size={15} strokeWidth={2} />

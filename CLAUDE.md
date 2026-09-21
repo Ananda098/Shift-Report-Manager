@@ -74,6 +74,11 @@ by any model.
   list of pushed `NoteEntry`s and the live notes draft, `pushedKeys` (phrase keys already
   filed, so re-parsing never duplicates) and `manuallyEditedIds` (statement ids the
   manager has hand-edited or deleted, which a later note edit must never overwrite).
+  It also owns the single `drawer` descriptor (`incident` / `info` + section id / `note` +
+  note id) and every drawer's unsaved draft (`incidentDraft`, `infoDrafts` keyed by
+  section, `noteDrafts` keyed by note). The drafts live here rather than in the panels so
+  swapping the drawer's contents never loses input; Cancel clears that drawer's draft, and
+  a confirmed Add/Update clears it after saving.
 - **`types/report.ts`** defines the shared domain model: `Incident` / `ReviewIncident`,
   `Person`, `Evidence`, `DetailRow` (label/value rows that can carry a `Source` — the
   quote + person + time + input method it came from), `HistoryEntry`, the
@@ -102,16 +107,24 @@ by any model.
 
 Dark theme defined entirely in `tailwind.config.js` (`base`/`card`/`raised`/`line`/`txt`/
 `muted`/`faint`, a `teal` accent used for primary actions and AI-touched content, and
-`tier` colors for T1/T2/T3 severity plus a `tier.blue`). A custom `dt: '680px'` breakpoint
-(under `theme.extend.screens`) is the single mobile/desktop cutoff used everywhere —
-below it `NavRail` renders as a bottom bar and columns stack; at or above it `NavRail` is
-a sidebar and side-column cards (`MarginRail`, `ReviewQueue`) sit anchored alongside the
-main content. Custom font sizes (`title`/`section`/`body`/`meta`/`label`) are used
+`tier` colors for T1/T2/T3 severity plus a `tier.blue`). Three custom breakpoints live
+under `theme.extend.screens`. `dt: '680px'` is the mobile/desktop cutoff for everything
+that only needs a little room — below it `NavRail` is a bottom bar, gutters tighten to
+`px-4`, the incidents table stacks each row onto two lines, and hover-only affordances
+stay visible because touch has no hover. The side columns need far more than that, so
+they land later and separately: `wide: '1024px'` brings in the report's `MarginRail` and
+the review flow's `ReviewQueue` (below it the queue is replaced by `IncidentSwitcher`'s
+dropdown), and `rail: '1180px'` moves the review flow's own `MarginRail` alongside the
+content — later again, because there the 280px queue is already spending the width. Keep
+the numeric `breakpoint` prop passed to `MarginRail` in sync with whichever variant wraps
+it. Custom font sizes (`title`/`section`/`body`/`meta`/`label`) are used
 instead of Tailwind's default scale — prefer them over `text-sm`/`text-lg` etc. when
-styling. Side-drawer panels (`AddIncidentPanel`, `AddInfoPanel`, `EditNotePanel`) share
-one pattern: a `motion.aside` sliding in from the right, header with title + close,
-scrollable body, and a footer with "Cancel" plus a primary/Record action — follow it for
-any new drawer. Global styles/animations (ghost shimmer for AI placeholders, slim
+styling. There is one side drawer, not three: `DrawerShell` owns the
+`motion.aside` that slides in from the right at a fixed 440px, and `AddIncidentPanel`,
+`AddInfoPanel` and `EditNotePanel` render inside it as a `DrawerBody` (title + close +
+scrollable fields) plus a `DrawerFooter` (`DrawerCancel` and a primary/Record action).
+Opening a second drawer while one is up crossfades the contents in place instead of
+sliding the shell out and back — follow this for any new drawer. Global styles/animations (ghost shimmer for AI placeholders, slim
 scrollbars, 2-line clamp) live in `src/index.css`.
 
 ## Working conventions

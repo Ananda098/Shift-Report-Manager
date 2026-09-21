@@ -17,8 +17,13 @@ import { EmptySection } from './EmptySection';
 interface ReportSectionsProps {
   incidents: ReviewIncident[];
   highlightIncidentId: string | null;
-  onGoToReview: () => void;
   onAddIncident: () => void;
+  /** The side drawer is currently showing "New incident". */
+  addIncidentActive: boolean;
+  /** The section whose "Add information" drawer is showing, if any. */
+  activeSectionId: string | null;
+  /** Sections holding an unsaved drawer draft. */
+  draftSectionIds: string[];
   sections: StatementSection[];
   /** Whether notes have ever been pushed — flips an empty section from blank to "Not mentioned tonight". */
   notesPushed: boolean;
@@ -52,9 +57,9 @@ function SectionCard({
 
 }: {icon: IconType;title: string;action?: React.ReactNode;quiet?: boolean;children: React.ReactNode;}) {
   return (
-    <section className="rounded-xl border border-line bg-card p-5">
+    <section className="rounded-xl border border-line bg-card p-4 dt:p-5">
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
+        <div className="flex min-w-0 items-center gap-2.5">
           <span
             className={[
             'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-raised transition-colors duration-150 ease-out',
@@ -82,30 +87,45 @@ function SectionCard({
 function AddInfoAction({
   label,
   onClick,
-  editing = false
+  editing = false,
+  active = false,
+  hasDraft = false
 
 
 
 
-}: {label: string;onClick: () => void;editing?: boolean;}) {
+
+
+
+}: {label: string;onClick: () => void;editing?: boolean;active?: boolean;hasDraft?: boolean;}) {
   const Icon = editing ? PencilIcon : PlusIcon;
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-meta text-muted outline-none transition-colors duration-150 ease-out hover:bg-raised hover:text-txt focus-visible:ring-2 focus-visible:ring-teal">
+    <div className="flex shrink-0 items-center gap-1.5">
+      {hasDraft && <span className="whitespace-nowrap text-label text-faint">Draft</span>}
+      <button
+        type="button"
+        onClick={onClick}
+        aria-current={active ? 'true' : undefined}
+        className={[
+        'inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-2 py-2 text-meta outline-none dt:py-1',
+        'transition-colors duration-150 ease-out hover:bg-raised hover:text-txt focus-visible:ring-2 focus-visible:ring-teal',
+        active ? 'bg-raised text-txt' : 'text-muted'].
+        join(' ')}>
 
-      <Icon size={14} strokeWidth={2} />
-      {label}
-    </button>);
+        <Icon size={14} strokeWidth={2} />
+        {label}
+      </button>
+    </div>);
 
 }
 
 export function ReportSections({
   incidents,
   highlightIncidentId,
-  onGoToReview,
   onAddIncident,
+  addIncidentActive,
+  activeSectionId,
+  draftSectionIds,
   sections,
   notesPushed,
   newStatementIds,
@@ -118,19 +138,26 @@ export function ReportSections({
 }: ReportSectionsProps) {
   const chronological = [...incidents].sort((a, b) => nightOrder(a.time) - nightOrder(b.time));
   const reviewed = chronological.filter((incident) => incident.status !== 'pending');
-  const pendingCount = incidents.length - reviewed.length;
 
   return (
     <div className="space-y-4">
       <SectionCard
         icon={ShieldAlertIcon}
         title="Incidents"
-        action={<AddInfoAction label="Add incident" onClick={onAddIncident} />}>
+        action={
+        <AddInfoAction
+          label="Add incident"
+          onClick={onAddIncident}
+          active={addIncidentActive} />
 
-        {reviewed.length > 0 &&
+        }>
+
+        {reviewed.length === 0 ?
+        <EmptySection text="Nothing reviewed yet" /> :
+
         <>
             <div
-            className={`-mx-2 grid ${INCIDENT_GRID} gap-3.5 border-b border-line px-3 pb-2 text-label uppercase tracking-wide text-faint`}>
+            className={`-mx-2 hidden ${INCIDENT_GRID} border-b border-line px-3 pb-2 text-label uppercase tracking-wide text-faint`}>
 
               <span>Tier</span>
               <span>Incident</span>
@@ -149,25 +176,6 @@ export function ReportSections({
             </ul>
           </>
         }
-
-        {pendingCount > 0 &&
-        <div
-          className={[
-          'flex items-center gap-2',
-          reviewed.length > 0 ? 'mt-3 border-t border-line pt-3' : ''].
-          join(' ')}>
-
-            <p className="text-body text-muted">{pendingCount} awaiting review</p>
-            <span className="text-body text-faint">·</span>
-            <button
-            type="button"
-            onClick={onGoToReview}
-            className="rounded-md text-body text-teal underline-offset-4 outline-none transition-colors duration-150 ease-out hover:text-teal-hi hover:underline focus-visible:ring-2 focus-visible:ring-teal">
-
-              Continue review
-            </button>
-          </div>
-        }
       </SectionCard>
 
       {sections.map((section) => {
@@ -182,6 +190,8 @@ export function ReportSections({
             <AddInfoAction
               label={isEmpty ? 'Add information' : 'Edit information'}
               editing={!isEmpty}
+              active={activeSectionId === section.id}
+              hasDraft={draftSectionIds.includes(section.id)}
               onClick={() => onAddInfo(section.id)} />
 
             }>

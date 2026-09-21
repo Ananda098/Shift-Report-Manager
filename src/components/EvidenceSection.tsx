@@ -133,7 +133,7 @@ export function EvidenceSection({
         onClick={startUpload}
         disabled={uploading}
         className={[
-        'mt-2.5 rounded-md text-label outline-none transition-colors duration-150 ease-out hover:text-txt focus-visible:ring-2 focus-visible:ring-teal disabled:opacity-40',
+        'mt-2.5 rounded-md py-2.5 text-label outline-none dt:py-0 transition-colors duration-150 ease-out hover:text-txt focus-visible:ring-2 focus-visible:ring-teal disabled:opacity-40',
         error ? 'text-tier-t3' : 'text-faint'].
         join(' ')}>
 

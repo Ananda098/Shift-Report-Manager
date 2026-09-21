@@ -35,7 +35,7 @@ export function ReportHeader({ hasUnreviewed, demoted = false }: ReportHeaderPro
     <header
       ref={headerRef}
       className={[
-      'sticky top-0 z-20 -mx-10 -mt-9 mb-6 border-b bg-base px-10 pb-4 pt-9',
+      'sticky top-0 z-20 -mx-4 -mt-6 mb-5 border-b bg-base px-4 pb-4 pt-6 dt:-mx-10 dt:-mt-9 dt:mb-6 dt:px-10 dt:pt-9',
       'transition-colors duration-150 ease-out',
       scrolled ? 'border-line' : 'border-transparent'].
       join(' ')}>
@@ -45,7 +45,7 @@ export function ReportHeader({ hasUnreviewed, demoted = false }: ReportHeaderPro
         <span className="px-1.5 text-line">/</span>
         <span className="text-muted">Sat 20 Sep</span>
       </p>
-      <div className="flex items-start justify-between gap-6">
+      <div className="flex items-start justify-between gap-3 dt:gap-6">
         <div>
           <h1 className="text-title font-semibold text-txt">Report</h1>
           <p className="mt-1 text-meta text-muted">Sat 20 Sep · Club Neon</p>

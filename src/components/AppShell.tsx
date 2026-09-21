@@ -20,10 +20,28 @@ import { ReportSections } from './ReportSections';
 import { SourcePanel } from './SourcePanel';
 import { MarginRail, MarginRailItem } from './MarginRail';
 import { IncidentPreviewPanel } from './IncidentPreviewPanel';
-import { AddIncidentPanel, NewIncidentDraft } from './AddIncidentPanel';
-import { AddInfoPanel } from './AddInfoPanel';
+import {
+  AddIncidentPanel,
+  EMPTY_INCIDENT_DRAFT,
+  IncidentDraft } from
+'./AddIncidentPanel';
+import { AddInfoPanel, emptyInfoDraft, InfoDraft, infoDraftIsDirty } from './AddInfoPanel';
+import { DrawerShell } from './DrawerShell';
 import { ReviewView } from './ReviewView';
-import { Toast } from './Toast';
+import { toast } from 'sonner';
+
+/** Which of the three drawers the one shell is currently showing. */
+type Drawer =
+{kind: 'incident';} |
+{kind: 'info';sectionId: string;} |
+{kind: 'note';noteId: string;};
+
+const drawerKey = (drawer: Drawer): string =>
+drawer.kind === 'incident' ?
+'incident' :
+drawer.kind === 'info' ?
+`info-${drawer.sectionId}` :
+`note-${drawer.noteId}`;
 
 interface AppShellProps {
   incidents: ReviewIncident[];
@@ -67,32 +85,105 @@ export function AppShell({
   const [notesPushed, setNotesPushed] = useState(false);
   const [pushedKeys, setPushedKeys] = useState<Set<string>>(new Set());
   const [manuallyEditedIds, setManuallyEditedIds] = useState<Set<string>>(new Set());
-  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [sections, setSections] = useState<StatementSection[]>(
     statementSections.map((section) => ({ ...section, statements: [] }))
   );
   const [openStatementId, setOpenStatementId] = useState<string | null>(null);
   const [openIncidentId, setOpenIncidentId] = useState<string | null>(null);
-  const [addOpen, setAddOpen] = useState(false);
-  const [addInfoSectionId, setAddInfoSectionId] = useState<string | null>(null);
   const [newIncidentId, setNewIncidentId] = useState<string | null>(null);
   const [newStatementIds, setNewStatementIds] = useState<string[]>([]);
   const [currentReviewId, setCurrentReviewId] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
-  const [panelOwnsPrimary, setPanelOwnsPrimary] = useState(false);
+  const [visibleToasts, setVisibleToasts] = useState(0);
+
+  // One drawer at a time, plus the unsaved draft of every drawer that has
+  // been opened — swapping the shell's contents never throws input away.
+  const [drawer, setDrawer] = useState<Drawer | null>(null);
+  const [focusPulse, setFocusPulse] = useState(0);
+  const [incidentDraft, setIncidentDraft] = useState<IncidentDraft>(EMPTY_INCIDENT_DRAFT);
+  const [infoDrafts, setInfoDrafts] = useState<Record<string, InfoDraft>>({});
+  const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
 
   const openStatement = sections.flatMap((section) => section.statements).find((s) => s.id === openStatementId) ?? null;
   const openIncident = incidents.find((i) => i.id === openIncidentId) ?? null;
-  const addInfoSection = sections.find((s) => s.id === addInfoSectionId) ?? null;
-  const addInfoQuestions = addInfoSection ? SECTION_QUESTIONS[addInfoSection.id] ?? [] : [];
-  const addInfoInitialAnswers = addInfoQuestions.map(
-    (q) => addInfoSection?.statements.find((s) => s.chips.includes(q.chip))?.text ?? ''
+
+  /** A section's current statements, one answer per question — the baseline a
+      draft is measured against and what the drawer prefills with. */
+  const infoBaselineFor = (section: StatementSection) =>
+  (SECTION_QUESTIONS[section.id] ?? []).map(
+    (q) => section.statements.find((s) => s.chips.includes(q.chip))?.text ?? ''
   );
-  const editingNote = notes.find((n) => n.id === editingNoteId) ?? null;
+
+  const drawerSection = drawer?.kind === 'info' ? sections.find((s) => s.id === drawer.sectionId) ?? null : null;
+  const drawerNote = drawer?.kind === 'note' ? notes.find((n) => n.id === drawer.noteId) ?? null : null;
+
+  // Sections holding an unsaved draft, for the "Draft" marker on their trigger.
+  const draftSectionIds = sections.
+  filter((section) => {
+    const draft = infoDrafts[section.id];
+    return Boolean(draft) && infoDraftIsDirty(draft, infoBaselineFor(section));
+  }).
+  map((section) => section.id);
+
   const reviewedCount = incidents.filter((incident) => incident.status !== 'pending').length;
   const allReviewed = reviewedCount === incidents.length;
   // One primary per screen: anything layered on top takes the primary slot.
-  const demotePagePrimaries = panelOwnsPrimary || toast !== null;
+  const panelOwnsPrimary = drawer?.kind === 'incident' && incidentDraft.expanded;
+  const demotePagePrimaries = panelOwnsPrimary || visibleToasts > 0;
+
+  /** Opening a drawer while another is up swaps the contents in place.
+      Re-triggering the open one only re-focuses its first field. */
+  const openDrawer = (next: Drawer) => {
+    if (drawer && drawerKey(drawer) === drawerKey(next)) {
+      setFocusPulse((n) => n + 1);
+      return;
+    }
+    // The incident preview owns the same slot — never stack the two.
+    setOpenIncidentId(null);
+    // A drawer that has just swapped in is not re-focused, only re-triggered ones.
+    setFocusPulse(0);
+    setDrawer(next);
+  };
+
+  const closeDrawer = () => setDrawer(null);
+
+  const clearIncidentDraft = () => setIncidentDraft(EMPTY_INCIDENT_DRAFT);
+
+  const clearInfoDraft = (sectionId: string) =>
+  setInfoDrafts((prev) => {
+    const next = { ...prev };
+    delete next[sectionId];
+    return next;
+  });
+
+  const clearNoteDraft = (noteId: string) =>
+  setNoteDrafts((prev) => {
+    const next = { ...prev };
+    delete next[noteId];
+    return next;
+  });
+
+  const changeInfoDraft = (sectionId: string, baseline: string[]) => (
+  updater: (draft: InfoDraft) => InfoDraft) =>
+  {
+    setInfoDrafts((prev) => ({
+      ...prev,
+      [sectionId]: updater(prev[sectionId] ?? emptyInfoDraft(baseline))
+    }));
+  };
+
+  const openIncidentPreview = (id: string) => {
+    // The preview and the drawers share the right-hand slot; drafts survive.
+    setDrawer(null);
+    setOpenIncidentId(id);
+  };
+
+  /** Fires a toast and keeps a count of the live ones, so the page can demote
+      its own primary actions for as long as one is on screen. */
+  const showToast = (message: string) => {
+    setVisibleToasts((n) => n + 1);
+    const done = () => setVisibleToasts((n) => Math.max(0, n - 1));
+    toast.success(message, { duration: 5000, onAutoClose: done, onDismiss: done });
+  };
 
   const openReview = (incidentId?: string) => {
     const pending = sortForQueue(incidents.filter((i) => i.status === 'pending'));
@@ -105,11 +196,11 @@ export function AppShell({
     window.setTimeout(() => setNewStatementIds([]), 2200);
   };
 
-  const handleAddIncident = (draft: NewIncidentDraft) => {
+  const handleAddIncident = (draft: IncidentDraft) => {
     const id = `i-new-${Date.now()}`;
     onAddIncident({
       id,
-      tier: draft.tier,
+      tier: draft.tier ?? 'T1',
       type: draft.type,
       date: 'Sun 21',
       time: draft.time,
@@ -126,7 +217,8 @@ export function AppShell({
 
       history: [systemEntry('You added this incident · voice')]
     });
-    setAddOpen(false);
+    closeDrawer();
+    clearIncidentDraft();
     setNewIncidentId(id);
     window.setTimeout(() => setNewIncidentId((v) => v === id ? null : v), 2200);
   };
@@ -215,7 +307,7 @@ export function AppShell({
     setNotesDraft('');
 
     const titleById = Object.fromEntries(sections.map((s) => [s.id, s.title]));
-    setToast(summarisePush(parsed, parsedIncidents, titleById));
+    showToast(summarisePush(parsed, parsedIncidents, titleById));
   };
 
   /** Editing a note re-parses its new text: statements traced back to this
@@ -226,7 +318,8 @@ export function AppShell({
       alone. */
   const handleSaveNoteEdit = (noteId: string, newText: string) => {
     const note = notes.find((n) => n.id === noteId);
-    setEditingNoteId(null);
+    closeDrawer();
+    clearNoteDraft(noteId);
     if (!note || newText === note.text) return;
 
     const previousKeys = new Set(note.matches.map((m) => m.key));
@@ -341,7 +434,8 @@ export function AppShell({
       chip) updates it in place instead of duplicating it, and a row the
       manager cleared removes its statement. */
   const handleAddInfo = (sectionId: string, rows: {chip: string;text: string;}[]) => {
-    setAddInfoSectionId(null);
+    closeDrawer();
+    clearInfoDraft(sectionId);
     const newIds: string[] = [];
 
     setSections((prev) =>
@@ -405,7 +499,7 @@ export function AppShell({
   };
 
   const marginItems: MarginRailItem[] = [];
-  if (!openIncident && !addOpen && !addInfoSection && !editingNote && openStatement) {
+  if (!openIncident && !drawer && openStatement) {
     marginItems.push({
       id: `source-${openStatement.id}`,
       anchorId: `statement-${openStatement.id}`,
@@ -431,7 +525,7 @@ export function AppShell({
         onBack={() => setView('report')}
         onFinish={() => {
           setView('report');
-          setToast(`All ${incidents.length} incidents reviewed`);
+          showToast(`All ${incidents.length} incidents reviewed`);
         }} />);
 
 
@@ -442,8 +536,8 @@ export function AppShell({
       <NavRail />
 
       <main className="scroll-slim flex-1 overflow-y-auto">
-        <div className="mx-auto flex w-full max-w-[1100px] flex-col dt:flex-row">
-          <div className="w-full shrink-0 px-10 py-9 dt:w-[760px]">
+        <div className="mx-auto flex w-full max-w-[1100px] flex-col wide:flex-row">
+          <div className="w-full px-4 py-6 dt:px-10 dt:py-9 wide:min-w-0 wide:flex-1">
             <ReportHeader hasUnreviewed={!allReviewed} demoted={demotePagePrimaries} />
 
             <div className="mt-6 mb-7">
@@ -452,12 +546,13 @@ export function AppShell({
                 onChangeDraft={setNotesDraft}
                 onAddToReport={handlePushNotes}
                 notes={notes}
-                onEditNote={setEditingNoteId} />
+                activeNoteId={drawer?.kind === 'note' ? drawer.noteId : null}
+                onEditNote={(noteId) => openDrawer({ kind: 'note', noteId })} />
 
             </div>
 
             {!allReviewed &&
-            <div className="dt:hidden">
+            <div className="mb-6 wide:hidden dt:mb-7">
                 <ReviewModule
                 total={incidents.length}
                 reviewedCount={reviewedCount}
@@ -470,26 +565,30 @@ export function AppShell({
             <ReportSections
               incidents={incidents}
               highlightIncidentId={newIncidentId}
-              onGoToReview={() => openReview()}
-              onAddIncident={() => setAddOpen(true)}
+              onAddIncident={() => openDrawer({ kind: 'incident' })}
+              addIncidentActive={drawer?.kind === 'incident'}
+              activeSectionId={drawer?.kind === 'info' ? drawer.sectionId : null}
+              draftSectionIds={draftSectionIds}
               sections={sections}
               notesPushed={notesPushed}
               newStatementIds={newStatementIds}
               openStatementId={openStatementId}
               onOpenSource={(statement: Statement) => setOpenStatementId(statement.id)}
-              onOpenIncident={(incident) => setOpenIncidentId(incident.id)}
+              onOpenIncident={(incident) => openIncidentPreview(incident.id)}
               onChangeStatement={updateStatement}
               onDeleteStatement={deleteStatement}
-              onAddInfo={setAddInfoSectionId} />
+              onAddInfo={(sectionId) => openDrawer({ kind: 'info', sectionId })} />
 
           </div>
 
           <div
-            className="w-full shrink-0 px-10 pb-9 dt:w-[340px] dt:px-0 dt:py-9"
+            className="w-full shrink-0 px-4 pb-6 dt:px-10 wide:w-[340px] wide:px-0 wide:py-9"
             aria-label="Margin notes">
 
             {!allReviewed &&
-            <div className="hidden dt:block">
+            <div
+              className="hidden wide:sticky wide:top-0 wide:z-10 wide:-mt-9 wide:block wide:bg-base wide:pt-9 wide:pb-4">
+
                 <ReviewModule
                 total={incidents.length}
                 reviewedCount={reviewedCount}
@@ -498,7 +597,7 @@ export function AppShell({
 
               </div>
             }
-            <MarginRail items={marginItems} breakpoint={680} />
+            <MarginRail items={marginItems} breakpoint={1024} />
           </div>
         </div>
       </main>
@@ -515,40 +614,66 @@ export function AppShell({
           }} />
 
         }
-        {addOpen &&
-        <AddIncidentPanel
-          key="add-incident"
-          onClose={() => {
-            setAddOpen(false);
-            setPanelOwnsPrimary(false);
-          }}
-          onAdd={handleAddIncident}
-          onPrimaryChange={setPanelOwnsPrimary} />
+        {drawer &&
+        <DrawerShell
+          key="drawer"
+          contentKey={drawerKey(drawer)}
+          ariaLabel={
+          drawer.kind === 'incident' ?
+          'New incident' :
+          drawer.kind === 'info' ?
+          drawerSection?.title ?? 'Add information' :
+          'Edit note'
+          }>
 
+            {drawer.kind === 'incident' &&
+          <AddIncidentPanel
+            draft={incidentDraft}
+            onChangeDraft={setIncidentDraft}
+            focusPulse={focusPulse}
+            onClose={() => {
+              closeDrawer();
+              clearIncidentDraft();
+            }}
+            onAdd={handleAddIncident} />
+
+          }
+            {drawer.kind === 'info' && drawerSection && (() => {
+            const baseline = infoBaselineFor(drawerSection);
+            return (
+              <AddInfoPanel
+                sectionTitle={drawerSection.title}
+                questions={SECTION_QUESTIONS[drawerSection.id] ?? []}
+                baseline={baseline}
+                draft={infoDrafts[drawerSection.id] ?? emptyInfoDraft(baseline)}
+                onChangeDraft={changeInfoDraft(drawerSection.id, baseline)}
+                focusPulse={focusPulse}
+                hasExistingContent={drawerSection.statements.length > 0}
+                onClose={() => {
+                  closeDrawer();
+                  clearInfoDraft(drawerSection.id);
+                }}
+                onAdd={(rows) => handleAddInfo(drawerSection.id, rows)} />);
+
+
+          })()}
+            {drawer.kind === 'note' && drawerNote &&
+          <EditNotePanel
+            note={drawerNote}
+            draft={noteDrafts[drawerNote.id] ?? drawerNote.text}
+            onChangeDraft={(text) =>
+            setNoteDrafts((prev) => ({ ...prev, [drawerNote.id]: text }))
+            }
+            focusPulse={focusPulse}
+            onClose={() => {
+              closeDrawer();
+              clearNoteDraft(drawerNote.id);
+            }}
+            onSave={handleSaveNoteEdit} />
+
+          }
+          </DrawerShell>
         }
-        {addInfoSection &&
-        <AddInfoPanel
-          key={`add-info-${addInfoSection.id}`}
-          sectionTitle={addInfoSection.title}
-          questions={addInfoQuestions}
-          initialAnswers={addInfoInitialAnswers}
-          hasExistingContent={addInfoSection.statements.length > 0}
-          onClose={() => setAddInfoSectionId(null)}
-          onAdd={(rows) => handleAddInfo(addInfoSection.id, rows)} />
-
-        }
-        {editingNote &&
-        <EditNotePanel
-          key={`edit-note-${editingNote.id}`}
-          note={editingNote}
-          onClose={() => setEditingNoteId(null)}
-          onSave={handleSaveNoteEdit} />
-
-        }
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {toast && <Toast key="report-toast" message={toast} onDone={() => setToast(null)} />}
       </AnimatePresence>
     </div>);
 

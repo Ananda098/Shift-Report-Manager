@@ -98,7 +98,7 @@ export function StatementRow({
         )}
         <button
           type="button"
-          className="rounded-md border border-dashed border-line px-1.5 py-0.5 text-label text-faint opacity-0 outline-none transition-[opacity,color] duration-150 ease-out hover:text-muted focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-teal group-hover:opacity-100">
+          className="rounded-md border border-dashed border-line px-2 py-1.5 text-label text-faint opacity-100 outline-none transition-[opacity,color] duration-150 ease-out hover:text-muted focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-teal dt:px-1.5 dt:py-0.5 dt:opacity-0 dt:group-hover:opacity-100">
           
           + tag
         </button>
@@ -168,11 +168,11 @@ export function StatementRow({
         aria-label="Where this came from"
         onClick={() => onOpenSource(statement)}
         className={[
-        'absolute right-2 top-2 rounded-md p-1.5 outline-none transition-[opacity,color] duration-150 ease-out',
+        'absolute right-2 top-2 rounded-md p-2.5 outline-none transition-[opacity,color] duration-150 ease-out dt:p-1.5',
         'focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-teal',
         active ?
         'text-teal opacity-100' :
-        'text-faint opacity-0 hover:text-txt group-hover:opacity-100'].
+        'text-faint opacity-100 hover:text-txt dt:opacity-0 dt:group-hover:opacity-100'].
         join(' ')}>
         
         <SearchIcon size={15} strokeWidth={2} />

@@ -30,7 +30,7 @@ export function DecisionBar({
       <button
         type="button"
         onClick={onRestore}
-        className="rounded-md px-1 py-1 text-body font-medium text-tier-t3 outline-none transition-opacity duration-150 ease-out hover:opacity-80 focus-visible:ring-2 focus-visible:ring-tier-t3">
+        className="rounded-md px-1 py-2.5 text-body font-medium text-tier-t3 outline-none transition-opacity duration-150 ease-out hover:opacity-80 focus-visible:ring-2 focus-visible:ring-tier-t3 dt:py-1">
         
           Restore
         </button> :
@@ -38,7 +38,7 @@ export function DecisionBar({
       <button
         type="button"
         onClick={onDismissRequest}
-        className="rounded-md px-1 py-1 text-body font-medium text-tier-t3 outline-none transition-opacity duration-150 ease-out hover:opacity-80 focus-visible:ring-2 focus-visible:ring-tier-t3">
+        className="rounded-md px-1 py-2.5 text-body font-medium text-tier-t3 outline-none transition-opacity duration-150 ease-out hover:opacity-80 focus-visible:ring-2 focus-visible:ring-tier-t3 dt:py-1">
         
           Not an incident
         </button>

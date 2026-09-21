@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { SparklesIcon, PencilIcon } from 'lucide-react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { SparklesIcon, PencilIcon, ChevronDownIcon } from 'lucide-react';
 import { GhostPrompt } from './GhostPrompt';
 import { RecordButton } from './RecordButton';
 import { NoteEntry } from '../types/report';
 import { getCaretCoordinates, measureTextWidth } from '../utils/caretCoordinates';
 
-const PLACEHOLDER =
-'What happened tonight? Start anywhere — the crowd, the crew, anything that went wrong. Type or hit Record and just talk.';
+const PLACEHOLDER = 'What happened tonight?';
 
 const GHOST_PROMPTS = [
 'Crowd tonight?',
@@ -40,6 +40,8 @@ interface NotesCardProps {
   onChangeDraft: (value: string) => void;
   onAddToReport: () => void;
   notes: NoteEntry[];
+  /** The note whose "Edit note" drawer is currently showing, if any. */
+  activeNoteId: string | null;
   onEditNote: (noteId: string) => void;
 }
 
@@ -51,6 +53,7 @@ export function NotesCard({
   onChangeDraft,
   onAddToReport,
   notes,
+  activeNoteId,
   onEditNote
 }: NotesCardProps) {
   const [ghost, setGhost] = useState<Ghost | null>(null);
@@ -59,6 +62,11 @@ export function NotesCard({
   const [highlightStart, setHighlightStart] = useState<number | null>(null);
   const [highlightFading, setHighlightFading] = useState(false);
   const [showAllNotes, setShowAllNotes] = useState(false);
+  // The pushed-notes list is hidden behind the footer entry point, and never
+  // opens on its own — a push is acknowledged by the toast and the count.
+  const [notesOpen, setNotesOpen] = useState(false);
+
+  const reduceMotion = useReducedMotion();
 
   const promptIndex = useRef(0);
   const pauseTimer = useRef<number | undefined>(undefined);
@@ -177,12 +185,15 @@ export function NotesCard({
   };
 
   const showTranscriptView = typing || highlightStart !== null;
-  const canPush = !typing && draft.trim().length > 0;
+  // Anything in the box — typed or dictated — reveals the push action and
+  // demotes Record to a quiet secondary.
+  const hasContent = draft.trim().length > 0;
+  const canPush = !typing && hasContent;
   const visibleNotes = showAllNotes ? notes : notes.slice(0, VISIBLE_NOTES);
 
   return (
     <div className="rounded-xl border border-line bg-card">
-      <div className="px-5 py-4">
+      <div className="px-4 py-3.5 dt:px-5 dt:py-4">
         {showTranscriptView ?
         <p
           ref={transcriptRef}
@@ -227,35 +238,87 @@ export function NotesCard({
         }
       </div>
 
-      <div className="flex items-center justify-end gap-2 border-t border-line px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-4 py-3">
+        {notes.length > 0 ?
         <button
           type="button"
-          onClick={onAddToReport}
-          disabled={!canPush}
-          className="inline-flex h-10 items-center gap-1.5 rounded-lg px-4 text-meta font-medium text-teal outline-none transition-colors duration-150 ease-out hover:bg-teal-fill focus-visible:ring-2 focus-visible:ring-teal disabled:pointer-events-none disabled:opacity-40">
+          onClick={() => setNotesOpen((open) => !open)}
+          aria-expanded={notesOpen}
+          aria-controls="my-notes-list"
+          className="inline-flex h-10 shrink-0 items-center gap-1 rounded-lg px-2 text-meta text-muted outline-none transition-colors duration-150 ease-out hover:text-txt focus-visible:ring-2 focus-visible:ring-teal">
 
-          <SparklesIcon size={15} strokeWidth={2} />
-          Add my notes to the report
-        </button>
-        <RecordButton
-          recording={recording}
-          disabled={typing}
-          onStart={() => {
-            clearPause();
-            setGhost(null);
-            setRecording(true);
-          }}
-          onStop={handleStop} />
+            My notes ({notes.length})
+            <ChevronDownIcon
+            size={15}
+            strokeWidth={2}
+            className={[
+            'transition-transform duration-200 ease-out',
+            notesOpen ? 'rotate-180' : ''].
+            join(' ')} />
 
+          </button> :
+
+        <span />
+        }
+
+        {/* Record holds the right edge: the push action only ever fades in and
+            out of the space already reserved beside it, so nothing shifts. */}
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onAddToReport}
+            disabled={!canPush}
+            aria-hidden={!hasContent}
+            className={[
+            'inline-flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-4 text-meta font-medium outline-none',
+            'bg-teal text-teal-ink hover:bg-teal-hi',
+            'transition-[opacity,background-color] duration-150 ease-out',
+            'focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-card',
+            hasContent ? canPush ? 'opacity-100' : 'pointer-events-none opacity-40' : 'pointer-events-none opacity-0'].
+            join(' ')}>
+
+            <SparklesIcon size={15} strokeWidth={2} />
+            <span className="dt:hidden">Add to report</span>
+            <span className="hidden dt:inline">Add my notes to the report</span>
+          </button>
+          <RecordButton
+            recording={recording}
+            disabled={typing}
+            secondary={hasContent}
+            onStart={() => {
+              clearPause();
+              setGhost(null);
+              setRecording(true);
+            }}
+            onStop={handleStop} />
+
+        </div>
       </div>
 
-      {notes.length > 0 &&
-      <div className="border-t border-line px-3 py-2">
-          <ul className="space-y-0.5">
+      <AnimatePresence initial={false}>
+        {notes.length > 0 && notesOpen &&
+        <motion.div
+          id="my-notes-list"
+          key="my-notes-list"
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={
+          reduceMotion ?
+          { duration: 0 } :
+          { duration: 0.22, ease: [0.23, 1, 0.32, 1] }
+          }
+          className="overflow-hidden">
+
+          <div className="border-t border-line px-3 py-2">
+            <ul className="space-y-0.5">
             {visibleNotes.map((note) =>
           <li
             key={note.id}
-            className="group flex items-center justify-between gap-3 rounded-lg px-2 py-1.5 transition-colors duration-150 ease-out hover:bg-raised">
+            className={[
+            'group flex items-center justify-between gap-3 rounded-lg px-2 py-1.5 transition-colors duration-150 ease-out hover:bg-raised',
+            activeNoteId === note.id ? 'bg-raised' : ''].
+            join(' ')}>
 
                 <div className="min-w-0 flex-1">
                   <p className="text-meta text-txt">
@@ -268,7 +331,11 @@ export function NotesCard({
               type="button"
               onClick={() => onEditNote(note.id)}
               aria-label="Edit note"
-              className="shrink-0 rounded-md p-1.5 text-faint opacity-0 outline-none transition-[opacity,color] duration-150 ease-out hover:text-txt focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-teal group-hover:opacity-100">
+              aria-current={activeNoteId === note.id ? 'true' : undefined}
+              className={[
+              'shrink-0 rounded-md p-2.5 opacity-100 outline-none transition-[opacity,color] duration-150 ease-out hover:text-txt focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-teal dt:p-1.5',
+              activeNoteId === note.id ? 'text-txt dt:opacity-100' : 'text-faint dt:opacity-0 dt:group-hover:opacity-100'].
+              join(' ')}>
 
                   <PencilIcon size={14} strokeWidth={2} />
                 </button>
@@ -283,9 +350,11 @@ export function NotesCard({
 
               Show all ({notes.length})
             </button>
+            }
+          </div>
+        </motion.div>
         }
-        </div>
-      }
+      </AnimatePresence>
     </div>);
 
 }

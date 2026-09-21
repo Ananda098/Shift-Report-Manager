@@ -79,7 +79,7 @@ export function InlineAIHelp({
           key={option.label}
           type="button"
           onClick={() => resolve(option.onSelect)}
-          className="rounded-lg border border-line px-2.5 py-1.5 text-meta text-muted outline-none transition-colors duration-150 ease-out hover:border-teal hover:text-teal focus-visible:ring-2 focus-visible:ring-teal">
+          className="rounded-lg border border-line px-2.5 py-2.5 text-meta text-muted outline-none transition-colors duration-150 ease-out hover:border-teal hover:text-teal focus-visible:ring-2 focus-visible:ring-teal dt:py-1.5">
           
               {option.label}
             </button>

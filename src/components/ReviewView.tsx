@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { ReviewIncident, Tier } from '../types/report';
 import { reviewHelp } from '../data/reviewHelp';
@@ -41,10 +41,18 @@ export function ReviewView({
   const [dismissOpen, setDismissOpen] = useState(false);
   const [helpError, setHelpError] = useState<string | null>(null);
   const saveTimer = useRef<number | undefined>(undefined);
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
 
   const current = incidents.find((i) => i.id === currentId) ?? incidents[0];
   const pending = incidents.filter((i) => i.status === 'pending');
   const help = reviewHelp.find((h) => h.incidentId === current.id && !resolvedHelp.includes(h.id));
+
+  // Each incident is its own page of the queue, so start it from the top
+  // rather than wherever the previous one was left scrolled to.
+  useLayoutEffect(() => {
+    scrollerRef.current?.scrollTo({ top: 0 });
+    window.scrollTo({ top: 0 });
+  }, [current.id]);
 
   const touch = () => {
     setSaving(true);
@@ -179,9 +187,9 @@ export function ReviewView({
         <ReviewQueue incidents={incidents} currentId={current.id} onSelect={onSelect} />
 
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="scroll-slim flex-1 overflow-y-auto">
-            <div className="mx-auto flex w-full max-w-[1080px] flex-col dt:flex-row">
-              <div className="flex w-full shrink-0 flex-col px-8 pb-8 pt-8 dt:w-[720px]">
+          <div ref={scrollerRef} className="scroll-slim flex-1 overflow-y-auto">
+            <div className="mx-auto flex w-full max-w-[1080px] flex-col rail:flex-row">
+              <div className="flex w-full flex-col px-4 pb-6 pt-6 dt:px-8 dt:pb-8 dt:pt-8 rail:min-w-0 rail:flex-1">
                 <IncidentDetail
                   incident={current}
                   highlightId={highlightId}
@@ -206,16 +214,16 @@ export function ReviewView({
               </div>
 
               <div
-                className="w-full shrink-0 px-8 pb-8 dt:w-[340px] dt:px-0 dt:pt-8"
+                className="w-full shrink-0 px-4 pb-6 dt:px-8 dt:pb-8 rail:w-[340px] rail:px-0 rail:pt-8"
                 aria-label="Margin notes">
 
-                <MarginRail items={marginItems} breakpoint={680} />
+                <MarginRail items={marginItems} breakpoint={1180} />
               </div>
             </div>
           </div>
 
-          <div className="mx-auto flex w-full max-w-[1080px] shrink-0 dt:flex-row">
-            <div className="w-full shrink-0 px-8 dt:w-[720px]">
+          <div className="mx-auto flex w-full max-w-[1080px] shrink-0 rail:flex-row">
+            <div className="w-full px-4 dt:px-8 rail:min-w-0 rail:flex-1">
               <DecisionBar
                 status={current.status}
                 pendingCount={pending.length}
@@ -223,7 +231,7 @@ export function ReviewView({
                 onRestore={handleRestore}
                 onConfirm={handleConfirm} />
             </div>
-            <div className="hidden shrink-0 dt:block dt:w-[340px]" />
+            <div className="hidden shrink-0 rail:block rail:w-[340px]" />
           </div>
         </div>
       </div>

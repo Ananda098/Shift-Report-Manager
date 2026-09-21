@@ -28,7 +28,7 @@ export function DoneStack({ incidents, currentId, onSelect }: DoneStackProps) {
   if (incidents.length === 0) return null;
 
   return (
-    <div ref={containerRef} className="shrink-0 px-3 pb-6 pt-4">
+    <div ref={containerRef} className="scroll-slim max-h-[55%] shrink-0 overflow-y-auto px-3 pb-6 pt-4">
 
       <AnimatePresence initial={false} mode="wait">
         {pinned ?

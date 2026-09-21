@@ -42,7 +42,7 @@ export function TierMenu({ tier, onChange }: TierMenuProps) {
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-1 rounded-md outline-none transition-opacity duration-150 ease-out hover:opacity-80 focus-visible:ring-2 focus-visible:ring-teal">
+        className="inline-flex items-center gap-1 rounded-md py-1.5 outline-none transition-opacity duration-150 ease-out hover:opacity-80 focus-visible:ring-2 focus-visible:ring-teal dt:py-0">
         
         <TierBadge tier={tier} />
         <ChevronDownIcon size={13} strokeWidth={2} className="text-faint" />
@@ -56,7 +56,7 @@ export function TierMenu({ tier, onChange }: TierMenuProps) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -4 }}
           transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
-          className="absolute left-0 top-full z-30 mt-1.5 w-[400px] overflow-hidden rounded-xl border border-line bg-raised p-1 shadow-xl">
+          className="absolute left-0 top-full z-30 mt-1.5 w-[calc(100vw-2rem)] max-w-[400px] overflow-hidden rounded-xl border border-line bg-raised p-1 shadow-xl dt:w-[400px]">
 
             {TIERS.map((option) =>
           <li key={option.tier} role="none">
@@ -72,7 +72,7 @@ export function TierMenu({ tier, onChange }: TierMenuProps) {
                   <span className="w-24 shrink-0">
                     <TierBadge tier={option.tier} />
                   </span>
-                  <span className="whitespace-nowrap text-label text-muted">{option.description}</span>
+                  <span className="text-label text-muted dt:whitespace-nowrap">{option.description}</span>
                 </button>
               </li>
           )}

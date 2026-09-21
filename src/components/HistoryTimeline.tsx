@@ -65,7 +65,7 @@ function ReportEntry({ entry, location }: {entry: HistoryEntry;location: string;
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="mt-1 rounded-md text-meta text-muted underline-offset-4 outline-none transition-colors duration-150 ease-out hover:text-txt hover:underline focus-visible:ring-2 focus-visible:ring-teal">
+        className="mt-1 rounded-md py-2 text-meta text-muted underline-offset-4 dt:py-0 outline-none transition-colors duration-150 ease-out hover:text-txt hover:underline focus-visible:ring-2 focus-visible:ring-teal">
         
           {expanded ? 'Hide full report' : 'Show full report'}
         </button>

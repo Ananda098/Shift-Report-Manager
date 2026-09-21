@@ -4,6 +4,9 @@ import { MicIcon } from 'lucide-react';
 interface RecordButtonProps {
   recording: boolean;
   disabled?: boolean;
+  /** Steps back to an unfilled button when something else on the row owns
+      the primary slot. Same box either way, so nothing shifts. */
+  secondary?: boolean;
   onStart: () => void;
   onStop: () => void;
 }
@@ -14,7 +17,7 @@ function format(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-export function RecordButton({ recording, disabled, onStart, onStop }: RecordButtonProps) {
+export function RecordButton({ recording, disabled, secondary, onStart, onStop }: RecordButtonProps) {
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
@@ -52,7 +55,11 @@ export function RecordButton({ recording, disabled, onStart, onStop }: RecordBut
       type="button"
       onClick={onStart}
       disabled={disabled}
-      className="inline-flex h-10 items-center gap-2 rounded-lg bg-teal-fill px-4 text-meta font-medium text-teal outline-none transition-colors duration-150 ease-out hover:bg-teal-fill/70 focus-visible:ring-2 focus-visible:ring-teal disabled:opacity-40">
+      className={[
+      'inline-flex h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-4 text-meta font-medium text-teal outline-none',
+      'transition-colors duration-150 ease-out focus-visible:ring-2 focus-visible:ring-teal disabled:opacity-40',
+      secondary ? 'hover:bg-teal-fill' : 'bg-teal-fill hover:bg-teal-fill/70'].
+      join(' ')}>
       
       <MicIcon size={17} strokeWidth={2} />
       Record

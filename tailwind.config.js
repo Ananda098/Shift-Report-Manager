@@ -6,9 +6,16 @@ export default {
   theme: {
     extend: {
       screens: {
-        // Single cutoff for the whole app: below this is the mobile layout,
-        // this width and up is the regular (desktop) layout, unconditionally.
+        // Below this is the mobile layout; this width and up is the regular
+        // (desktop) layout. Drives the NavRail, type scale and card spacing.
         dt: '680px',
+        // Where side columns move alongside the content instead of below it.
+        // Later than `dt` because they need real width on top of a readable
+        // content column: `wide` brings in the report's margin rail and the
+        // review queue, `rail` the review flow's margin rail — later again,
+        // since there the queue is already taking 280px.
+        wide: '1024px',
+        rail: '1180px',
       },
       colors: {
         base: '#131216',
