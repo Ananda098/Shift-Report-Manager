@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   PlusIcon,
-  PencilIcon,
   ShieldAlertIcon,
   UsersIcon,
   TriangleAlertIcon,
@@ -54,19 +53,32 @@ const SECTION_ICONS: Record<string, IconType> = {
   supplies: WrenchIcon
 };
 
+/** One section of the report. `framed` is spent once, on Incidents: it is the
+    night's payload and the only section holding a table, so it keeps the card
+    while the four written sections read as blocks of one document, separated
+    by a hairline and aligned to the card's own text inset. */
 function SectionCard({
   icon: Icon,
   title,
   action,
   quiet = false,
+  framed = false,
   children
 
 
 
 
-}: {icon: IconType;title: string;action?: React.ReactNode;quiet?: boolean;children: React.ReactNode;}) {
+
+}: {icon: IconType;title: string;action?: React.ReactNode;quiet?: boolean;framed?: boolean;children: React.ReactNode;}) {
   return (
-    <section className="rounded-xl border border-line bg-card p-4 dt:p-5">
+    <section
+      className={[
+      'group/section',
+      framed ?
+      'rounded-xl border border-line bg-card p-4 dt:p-5' :
+      'px-4 py-5 dt:px-5 dt:py-6'].
+      join(' ')}>
+
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2.5">
           <span
@@ -93,6 +105,12 @@ function SectionCard({
 
 }
 
+/** A section's action carries no chrome at all: one word, faint until the
+    section is pointed at, lifting to `txt` under the cursor and to teal while
+    its drawer is open. The heading beside it already names the subject, so
+    the word only has to name the verb. Touch has no hover, so below `dt` —
+    and whenever it is holding a draft or is open — it simply stays visible,
+    the same rule `StatementRow`'s magnifier follows. */
 function AddInfoAction({
   label,
   onClick,
@@ -107,24 +125,58 @@ function AddInfoAction({
 
 
 }: {label: string;onClick: () => void;editing?: boolean;active?: boolean;hasDraft?: boolean;}) {
-  const Icon = editing ? PencilIcon : PlusIcon;
+  const pinned = active || hasDraft;
   return (
-    <div className="flex shrink-0 items-center gap-1.5">
-      {hasDraft && <span className="whitespace-nowrap text-label text-faint">Draft</span>}
-      <button
-        type="button"
-        onClick={onClick}
-        aria-current={active ? 'true' : undefined}
-        className={[
-        'inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-2 py-2 text-meta outline-none dt:py-1',
-        'transition-colors duration-150 ease-out hover:bg-raised hover:text-txt focus-visible:ring-2 focus-visible:ring-teal',
-        active ? 'bg-raised text-txt' : 'text-muted'].
-        join(' ')}>
+    <button
+      type="button"
+      onClick={onClick}
+      title={label}
+      aria-label={hasDraft ? `${label} — unsaved draft` : label}
+      aria-current={active ? 'true' : undefined}
+      className={[
+      'inline-flex shrink-0 items-center gap-1.5 rounded-md px-1 py-2 text-meta outline-none dt:py-1',
+      'transition-[color,opacity] duration-150 ease-out',
+      'focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-teal',
+      active ? 'text-teal' : 'text-faint hover:text-txt',
+      pinned ? '' : 'dt:opacity-0 dt:group-hover/section:opacity-100'].
+      join(' ')}>
 
-        <Icon size={14} strokeWidth={2} />
-        {label}
-      </button>
-    </div>);
+      {/* An unsaved draft is state on the action itself, not a word floating
+          beside it. */}
+      {hasDraft && <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-teal" />}
+      {editing ? 'Edit' : 'Add'}
+    </button>);
+
+}
+
+/** Incidents keeps a labelled action: it names a thing to file, not a section
+    to edit, and it is the one action on the page worth reading. Pointing at it
+    is not a state — hover only lifts it onto a raised fill, while the drawer
+    being open takes teal, the one colour no hover borrows. The border is
+    transparent rather than absent at rest, so nothing resizes between them. */
+function AddIncidentAction({
+  onClick,
+  active = false
+
+
+
+}: {onClick: () => void;active?: boolean;}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-current={active ? 'true' : undefined}
+      className={[
+      'inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border px-2 py-2 text-meta outline-none dt:py-1',
+      'transition-colors duration-150 ease-out focus-visible:ring-2 focus-visible:ring-teal',
+      active ?
+      'border-teal/45 bg-teal-fill text-teal' :
+      'border-transparent text-faint hover:bg-raised hover:text-txt'].
+      join(' ')}>
+
+      <PlusIcon size={14} strokeWidth={2} />
+      Add incident
+    </button>);
 
 }
 
@@ -156,13 +208,8 @@ export function ReportSections({
       <SectionCard
         icon={ShieldAlertIcon}
         title="Incidents"
-        action={
-        <AddInfoAction
-          label="Add incident"
-          onClick={onAddIncident}
-          active={addIncidentActive} />
-
-        }>
+        framed
+        action={<AddIncidentAction onClick={onAddIncident} active={addIncidentActive} />}>
 
         {reviewed.length === 0 ?
         <EmptySection text="Nothing reviewed yet" /> :
@@ -190,7 +237,10 @@ export function ReportSections({
         }
       </SectionCard>
 
-      {sections.map((section) => {
+      {/* The written sections run together as one document: a hairline between
+          them instead of five frames down the page. */}
+      <div className="divide-y divide-line">
+        {sections.map((section) => {
         const isEmpty = section.statements.length === 0;
         return (
           <SectionCard
@@ -200,7 +250,7 @@ export function ReportSections({
             quiet={isEmpty}
             action={
             <AddInfoAction
-              label={isEmpty ? 'Add information' : 'Edit information'}
+              label={isEmpty ? `Add to ${section.title}` : `Edit ${section.title}`}
               editing={!isEmpty}
               active={activeSectionId === section.id}
               hasDraft={draftSectionIds.includes(section.id)}
@@ -244,6 +294,7 @@ export function ReportSections({
           </SectionCard>);
 
       })}
+      </div>
     </div>);
 
 }

@@ -1,5 +1,3 @@
-import { ShieldAlertIcon } from 'lucide-react';
-
 interface ReviewModuleProps {
   total: number;
   reviewedCount: number;
@@ -25,21 +23,12 @@ export function ReviewModule({
       aria-labelledby="review-module-title"
       className="rounded-xl border border-teal/25 bg-teal-fill/40 p-4">
       
-      <div className="flex items-center gap-2.5">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-teal/15 text-teal">
-          <ShieldAlertIcon size={15} strokeWidth={1.75} />
-        </span>
-        <h2 id="review-module-title" className="text-meta font-semibold text-txt">
-          Incident review
-        </h2>
-      </div>
-
-      <p className="mt-3.5 text-body text-txt">
+      <h2 id="review-module-title" className="text-section font-semibold text-txt">
         {started ?
         `${reviewedCount} of ${total} incidents reviewed` :
-        `${total} incidents reported tonight`
+        `${total} incidents reported`
         }
-      </p>
+      </h2>
       <p className="mt-1 text-label text-muted">
         {started ?
         `${left} still to go` :
