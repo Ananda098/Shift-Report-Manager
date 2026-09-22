@@ -30,7 +30,7 @@ report:
    and repairs** — and the "Send report" action (not wired to anything real — it's set
    dressing).
 2. **Notes → report ("mocked AI")** (`utils/mockAi.ts`) — typing or recording a note and
-   hitting "Add my notes to the report" runs it through a deterministic phrase-matcher
+   hitting "Add note" runs it through a deterministic phrase-matcher
    (not a real model) that splits it into tagged statements per section, or, for an
    incident-shaped line, files a new incident awaiting review instead of report text.
    Each push logs the note itself as a compact entry ("My note · time") under the input;

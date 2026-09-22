@@ -79,14 +79,12 @@ export function StatementRow({
       editing ? 'border-teal bg-teal-fill/30' : 'border-transparent hover:bg-raised'].
       join(' ')}>
 
-      {/* Line marker — keeps stacked statements separable at a glance, and
-          carries the "source is open" accent the left rule used to. */}
+      {/* Line marker — keeps stacked statements separable at a glance. It
+          reads the same whether or not the source is open; the magnifier on
+          the right is what marks that. */}
       <span
         aria-hidden
-        className={[
-        'mt-[10px] h-1.5 w-1.5 shrink-0 rounded-full transition-colors duration-150 ease-out',
-        active ? 'bg-teal' : 'bg-faint group-hover:bg-muted'].
-        join(' ')} />
+        className="mt-[10px] h-1.5 w-1.5 shrink-0 rounded-full bg-faint transition-colors duration-150 ease-out group-hover:bg-muted" />
 
 
       {editing ?

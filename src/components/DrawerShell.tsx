@@ -110,12 +110,12 @@ export function DrawerCancel({ onClick }: {onClick: () => void;}) {
 
 /** The solid action a drawer footer ends with. One box in every drawer; the
     short label takes over at phone width, and whenever `compact` is set, so
-    a long label never squeezes the rest of the footer. */
+    a long label never squeezes the rest of the footer. There is no disabled
+    state — a footer with nothing to add leaves the button out entirely. */
 export function DrawerPrimary({
   label,
   shortLabel,
   trailingIcon,
-  disabled = false,
   compact = false,
   onClick
 
@@ -124,18 +124,15 @@ export function DrawerPrimary({
 
 
 
-
-}: {label: string;shortLabel?: string;trailingIcon?: React.ReactNode;disabled?: boolean;compact?: boolean;onClick: () => void;}) {
+}: {label: string;shortLabel?: string;trailingIcon?: React.ReactNode;compact?: boolean;onClick: () => void;}) {
   return (
     <button
       type="button"
       onClick={onClick}
-      disabled={disabled}
       className={[
       'inline-flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg bg-teal px-4 text-meta font-medium text-teal-ink outline-none',
-      'transition-[opacity,background-color] duration-150 ease-out hover:bg-teal-hi',
-      'focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-card',
-      'disabled:pointer-events-none disabled:opacity-40'].
+      'transition-colors duration-150 ease-out hover:bg-teal-hi',
+      'focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-card'].
       join(' ')}>
 
       {shortLabel ?
@@ -153,13 +150,13 @@ export function DrawerPrimary({
 
 }
 
-/** Every editable drawer's right-hand pair: Record, then the primary. Both
-    are always on screen, so the footer never reflows — only the emphasis
-    moves. Nothing entered yet: Record is the filled button and the primary
-    waits, greyed out. Something entered: the primary goes solid and Record
-    steps back to a quiet "record some more". Mid-take: the primary is out of
-    reach until the transcript lands, and yields to its short label so the
-    running timer always has room. */
+/** Every editable drawer's right-hand pair. Nothing entered yet: Record is
+    the filled button, on its own — there is nothing to add, so no primary is
+    offered. Something entered, and the take finished: the primary fades in
+    beside it and Record steps back to a quiet "record some more", sliding
+    over to make room. Mid-take the primary is gone again, and the one that
+    comes back yields to its short label so the running timer always has
+    room. */
 export function DrawerActions({
   recording,
   recordDisabled,
@@ -167,7 +164,7 @@ export function DrawerActions({
   onStopRecord,
   primaryLabel,
   primaryShortLabel,
-  primaryDisabled,
+  primaryReady,
   onPrimary
 
 
@@ -177,23 +174,40 @@ export function DrawerActions({
 
 
 
-}: {recording: boolean;recordDisabled?: boolean;onStartRecord: () => void;onStopRecord: () => void;primaryLabel: string;primaryShortLabel?: string;primaryDisabled: boolean;onPrimary: () => void;}) {
+}: {recording: boolean;recordDisabled?: boolean;onStartRecord: () => void;onStopRecord: () => void;primaryLabel: string;primaryShortLabel?: string;primaryReady: boolean;onPrimary: () => void;}) {
+  const reduceMotion = useReducedMotion();
+  const slide = { duration: reduceMotion ? 0 : 0.2, ease: [0.23, 1, 0.32, 1] as const };
+
   return (
     <div className="flex min-w-0 items-center gap-2">
-      <RecordButton
-        recording={recording}
-        disabled={recordDisabled}
-        secondary={!primaryDisabled}
-        onStart={onStartRecord}
-        onStop={onStopRecord} />
+      <motion.div layout transition={slide}>
+        <RecordButton
+          recording={recording}
+          disabled={recordDisabled}
+          secondary={primaryReady}
+          onStart={onStartRecord}
+          onStop={onStopRecord} />
 
-      <DrawerPrimary
-        label={primaryLabel}
-        shortLabel={primaryShortLabel}
-        disabled={primaryDisabled}
-        compact={recording}
-        onClick={onPrimary} />
+      </motion.div>
 
+      <AnimatePresence initial={false}>
+        {primaryReady &&
+        <motion.div
+          key="primary"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: reduceMotion ? 0 : 0.15, ease: 'linear' }}>
+
+            <DrawerPrimary
+            label={primaryLabel}
+            shortLabel={primaryShortLabel}
+            compact={recording}
+            onClick={onPrimary} />
+
+          </motion.div>
+        }
+      </AnimatePresence>
     </div>);
 
 }

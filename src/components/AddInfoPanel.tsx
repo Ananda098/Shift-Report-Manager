@@ -88,7 +88,9 @@ export function AddInfoPanel({
   const [discardOpen, setDiscardOpen] = useState(false);
 
   const { answers, recordedChips } = draft;
-  const hasData = answers.some((a) => a.trim().length > 0);
+  // Measured against what the section already says, not against empty: a
+  // drawer reopened on answered rows has nothing to add until something in
+  // it actually changes.
   const isDirty = infoDraftIsDirty(draft, baseline);
 
   const setAnswer = (index: number, value: string) => {
@@ -163,7 +165,7 @@ export function AddInfoPanel({
           onStopRecord={handleStop}
           primaryLabel={hasExistingContent ? 'Update information' : 'Add information'}
           primaryShortLabel={hasExistingContent ? 'Update' : 'Add'}
-          primaryDisabled={!hasData || recording}
+          primaryReady={isDirty && !recording}
           onPrimary={handleAdd} />
 
       </DrawerFooter>

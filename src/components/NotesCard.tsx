@@ -69,6 +69,7 @@ export function NotesCard({
   const [notesOpen, setNotesOpen] = useState(false);
 
   const reduceMotion = useReducedMotion();
+  const slide = { duration: reduceMotion ? 0 : 0.2, ease: [0.23, 1, 0.32, 1] as const };
 
   const promptIndex = useRef(0);
   const pauseTimer = useRef<number | undefined>(undefined);
@@ -182,7 +183,9 @@ export function NotesCard({
   // Anything in the box — typed or dictated — reveals the push action and
   // demotes Record to a quiet secondary.
   const hasContent = draft.trim().length > 0;
-  const canPush = !typing && hasContent;
+  // Nothing to push while the box is empty, while a transcript is still
+  // landing, or mid-take — and a primary with nothing to do is not shown.
+  const canPush = hasContent && !typing && !recording;
   const visibleNotes = showAllNotes ? notes : notes.slice(0, VISIBLE_NOTES);
 
   return (
@@ -249,37 +252,47 @@ export function NotesCard({
         <span />
         }
 
-        {/* Record holds the right edge: the push action only ever fades in and
-            out of the space already reserved beside it, so nothing shifts. */}
+        {/* Same pair as every drawer footer: Record, then the action that
+            takes what is in the box somewhere. With the box empty there is
+            nothing to add, so Record stands alone and holds the right edge;
+            once there is something, Record slides over to let the push in. */}
         <div className="ml-auto flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onAddToReport}
-            disabled={!canPush}
-            aria-hidden={!hasContent}
-            className={[
-            'inline-flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-4 text-meta font-medium text-teal outline-none',
-            'transition-[opacity,background-color] duration-150 ease-out hover:bg-teal-fill',
-            'focus-visible:ring-2 focus-visible:ring-teal',
-            hasContent ? canPush ? 'opacity-100' : 'pointer-events-none opacity-40' : 'pointer-events-none opacity-0'].
-            join(' ')}>
+          <motion.div layout transition={slide}>
+            <RecordButton
+              recording={recording}
+              disabled={typing || recordDisabled}
+              secondary={hasContent}
+              onStart={() => {
+                clearPause();
+                setGhost(null);
+                setRecording(true);
+                onRecordingChange(true);
+              }}
+              onStop={handleStop} />
 
-            <SparklesIcon size={15} strokeWidth={2} />
-            <span className="dt:hidden">Add to report</span>
-            <span className="hidden dt:inline">Add my notes to the report</span>
-          </button>
-          <RecordButton
-            recording={recording}
-            disabled={typing || recordDisabled}
-            secondary={hasContent}
-            onStart={() => {
-              clearPause();
-              setGhost(null);
-              setRecording(true);
-              onRecordingChange(true);
-            }}
-            onStop={handleStop} />
+          </motion.div>
 
+          <AnimatePresence initial={false}>
+            {canPush &&
+            <motion.button
+              key="add-note"
+              type="button"
+              onClick={onAddToReport}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: reduceMotion ? 0 : 0.15, ease: 'linear' }}
+              className={[
+              'inline-flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg bg-teal px-4 text-meta font-medium text-teal-ink outline-none',
+              'transition-colors duration-150 ease-out hover:bg-teal-hi',
+              'focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-raised'].
+              join(' ')}>
+
+                <SparklesIcon size={15} strokeWidth={2} />
+                Add note
+              </motion.button>
+            }
+          </AnimatePresence>
         </div>
       </div>
 

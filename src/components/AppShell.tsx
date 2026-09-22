@@ -154,7 +154,10 @@ export function AppShell({
   drawer?.kind === 'incident' ?
   incidentDraftHasData(incidentDraft) :
   drawer?.kind === 'info' && drawerSection ?
-  (infoDrafts[drawerSection.id] ?? emptyInfoDraft(infoBaselineFor(drawerSection))).answers.some((a) => a.trim()) :
+  infoDraftIsDirty(
+    infoDrafts[drawerSection.id] ?? emptyInfoDraft(infoBaselineFor(drawerSection)),
+    infoBaselineFor(drawerSection)
+  ) :
   drawer?.kind === 'note' && drawerNote ?
   Boolean((noteDrafts[drawerNote.id] ?? drawerNote.text).trim()) :
   false;
@@ -254,7 +257,7 @@ export function AppShell({
     window.setTimeout(() => setNewIncidentId((v) => v === id ? null : v), 2200);
   };
 
-  /** "Add my notes to the report": mocked AI splits the note into tagged
+  /** "Add note": mocked AI splits the note into tagged
       statements per section, and any incident-shaped line becomes a real
       incident awaiting review instead of report text. Already-pushed
       phrases are skipped, so pushing several notes over the night never
@@ -592,7 +595,6 @@ export function AppShell({
       <SourcePanel
         source={openStatement.source}
         addedSources={openStatement.addedSources}
-        chips={openStatement.chips}
         onClose={() => setOpenStatementId(null)} />
 
 

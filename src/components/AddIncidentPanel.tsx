@@ -371,7 +371,7 @@ export function AddIncidentPanel({
           onStopRecord={handleStop}
           primaryLabel="Add incident"
           primaryShortLabel="Add"
-          primaryDisabled={!hasData || recording}
+          primaryReady={hasData && !recording}
           onPrimary={handleAdd} />
 
       </DrawerFooter>

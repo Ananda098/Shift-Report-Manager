@@ -7,13 +7,10 @@ import { Avatar } from './Avatar';
 interface SourcePanelProps {
   source: Source;
   addedSources?: AddedSource[];
-  /** Tags on the statement this source belongs to. The report itself stays
-      untagged for readability — they only surface here. */
-  chips?: string[];
   onClose: () => void;
 }
 
-export function SourcePanel({ source, addedSources, chips, onClose }: SourcePanelProps) {
+export function SourcePanel({ source, addedSources, onClose }: SourcePanelProps) {
   return (
     <motion.section
       initial={{ opacity: 0, y: 4 }}
@@ -59,25 +56,6 @@ export function SourcePanel({ source, addedSources, chips, onClose }: SourcePane
           </span>
         </div>
       )}
-
-      {chips &&
-      <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-line pt-3">
-          {chips.map((chip) =>
-        <span
-          key={chip}
-          className="rounded-md bg-raised px-1.5 py-0.5 text-label text-muted">
-
-              {chip}
-            </span>
-        )}
-          <button
-          type="button"
-          className="rounded-md border border-dashed border-line px-1.5 py-0.5 text-label text-faint outline-none transition-colors duration-150 ease-out hover:text-muted focus-visible:ring-2 focus-visible:ring-teal">
-
-            + tag
-          </button>
-        </div>
-      }
     </motion.section>);
 
 }

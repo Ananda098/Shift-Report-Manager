@@ -70,13 +70,11 @@ export function EditNotePanel({
       <DrawerFooter>
         <DrawerCancel onClick={requestClose} />
         {/* No Record here — there is nothing to dictate into an existing
-            note, so this drawer ends with the primary on its own. */}
-        <DrawerPrimary
-          label="Save note"
-          shortLabel="Save"
-          disabled={!draft.trim()}
-          onClick={handleSave} />
-
+            note, so this drawer ends with the primary on its own. It is gone
+            entirely while the note is empty: there is nothing to save. */}
+        {draft.trim().length > 0 &&
+        <DrawerPrimary label="Save note" shortLabel="Save" onClick={handleSave} />
+        }
       </DrawerFooter>
 
       <AnimatePresence>
